@@ -1,0 +1,12 @@
+discord.py
+python-dotenv
+pandas
+
+
+# google sheets
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+
+# mongo
+pymongo
