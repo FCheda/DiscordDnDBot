@@ -1,8 +1,10 @@
 # bot.py
 import os
 import sys
+import typing
 import discord
 from discord.ext import commands
+from discord import app_commands
 import random
 from dotenv import load_dotenv
 import data_query
@@ -26,7 +28,7 @@ class CustomClient(discord.Client):
 """
 
 # bot command tests
-bot = commands.Bot(command_prefix="$", intents=intents)
+bot = commands.Bot(command_prefix="/", intents=intents)
 
 
 @bot.command(name="test")
@@ -39,6 +41,42 @@ async def _test(ctx, arg1, arg2):
     embed.add_field(name="Esto es un field con titulo", value="Valor del field")
     embed.add_field(name="Otro field", value="Valor del otro field")
     await ctx.send(embed=embed)
+
+
+@bot.tree.command(name="tree_test")
+async def _tree_test(interaction: discord.Interaction):
+    await interaction.response.send_message(
+        f"Hello word, {interaction.user.guild}!", ephemeral=True
+    )
+
+
+@bot.tree.command(name="drink")
+async def drink(interaction: discord.Interaction, item: str):
+    await interaction.response.send_message(
+        f"{item}, {interaction.user}!", ephemeral=True
+    )
+
+
+@drink.autocomplete("item")
+async def drink_autocompletion(
+    interaction: discord.Interaction, current: str
+) -> typing.List[app_commands.Choice[str]]:
+    data = []
+    for drink_choice in ["beer", "blood", "tea", "coffe"]:
+        if current.lower() in drink_choice.lower():
+            data.append(app_commands.Choice(name=drink_choice, value=drink_choice))
+    return data
+
+
+@bot.event
+async def on_ready():
+    print("online")
+
+    try:
+        synced = await bot.tree.sync()
+        print(f"Synced {len(synced)} command(s)")
+    except Exception as e:
+        print(e)
 
 
 # bot general tests
