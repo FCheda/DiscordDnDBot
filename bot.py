@@ -6,16 +6,16 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import random
-from dotenv import load_dotenv
-import data_query
+from dotenv import load_dotenv  #
+import mongo_connector
+
+
+connector = mongo_connector.mongo_connector()
 
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD = os.getenv("DISCORD_GUILD")
-
-
-data_querier = data_query.dnddata()
 
 
 intents = discord.Intents.default()
@@ -136,18 +136,20 @@ async def on_message(message):
         response = random.choice(sex_quotes)
         await message.channel.send(response)
 
-    commands = ["!get character ", "!get player "]
+    commands = ["!get character ", "!get player ", "!update character "]
 
     if commands[0] in str(message.content):
         # response = "character query: " + message.content[len(commands[0]) :]
-        response = data_querier.get_query(query=message.content[len(commands[0]) :])
+        response = connector.get_character(message.content[len(commands[0]) :])
         await message.channel.send(response)
     if commands[1] in str(message.content):
-        # response = "character query: " + message.content[len(commands[0]) :]
-        response = data_querier.get_query(
-            type="player", query=message.content[len(commands[1]) :]
-        )
+        response = connector.get_player(message.content[len(commands[1]) :])
         await message.channel.send(response)
+    if commands[2] in str(message.content):
+        response = connector.update_character(
+            message.content[len(commands[2]) :], "foo"
+        )
+        await message.channel.send(str(response))
     # if message.content == "Que piensas de Fedor?":
     #    response = "Ufff esta buenorro el tio pero lo tiene pillado ems :("
     #    await message.channel.send(response)

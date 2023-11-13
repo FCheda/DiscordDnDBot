@@ -13,5 +13,3 @@ class commands:
             self.bot = commands.Bot(command_prefix="$", intents=intents)
 
         pass
-    def _init_commands(self):
-      
