@@ -2,6 +2,7 @@
 import os
 
 import discord
+from discord.ext import commands
 import random
 from dotenv import load_dotenv
 import data_query
@@ -24,6 +25,23 @@ class CustomClient(discord.Client):
         print(f"{self.user} has connected to Discord!")
 """
 
+# bot command tests
+bot = commands.Bot(command_prefix="$", intents=intents)
+
+
+@bot.command(name="test")
+async def _test(ctx, arg1, arg2):
+    embed = discord.Embed(
+        title="Test command",
+        description=f" You sended:\n arg1: {arg1} \n arg2: {arg2} \n This is an embeded response",
+        color=0x00FF00,
+    )
+    embed.add_field(name="Esto es un field con titulo", value="Valor del field")
+    embed.add_field(name="Otro field", value="Valor del otro field")
+    await ctx.send(embed=embed)
+
+
+# bot general tests
 client = discord.Client(intents=intents)
 
 
@@ -97,4 +115,5 @@ async def on_message(message):
     #    await message.channel.send(response)
 
 
-client.run(TOKEN)
+# client.run(TOKEN)
+bot.run(TOKEN)
