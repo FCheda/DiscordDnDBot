@@ -1,6 +1,6 @@
 # bot.py
 import os
-
+import sys
 import discord
 from discord.ext import commands
 import random
@@ -116,4 +116,23 @@ async def on_message(message):
 
 
 # client.run(TOKEN)
-bot.run(TOKEN)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "-cli":
+            print("starting as client")
+            client.run(TOKEN)
+
+        elif sys.argv[1] == "-bot":
+            print("starting as bot")
+            bot.run(TOKEN)
+    else:
+        print(
+            """
+      Usage
+      
+      missing command -bot or -cli
+      
+      """
+        )
