@@ -147,7 +147,7 @@ async def on_message(message):
         await message.channel.send(response)
     if commands[2] in str(message.content):
         response = connector.update_character(
-            message.content[len(commands[2]) :], "foo"
+            message.content[len(commands[2]) :],
         )
         await message.channel.send(str(response))
     # if message.content == "Que piensas de Fedor?":

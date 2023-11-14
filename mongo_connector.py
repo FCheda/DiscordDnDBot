@@ -13,6 +13,7 @@ mongo_server = os.getenv("MONGO_SERVER")
 dbname = "d&d_server_main_db"
 character_collection = "test"
 player_collection = "test_player"
+logs_collection = "test_log"
 
 
 class mongo_connector:
