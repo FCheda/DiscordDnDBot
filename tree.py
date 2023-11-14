@@ -27,22 +27,19 @@ async def on_ready():
 @app_commands.guild_only()
 class interact(app_commands.Group):
     @app_commands.command()
-    async def welcome(interaction: discord.Interaction):
-        print(interaction.channel)
-        if (interaction.channel == 121525123123):
-            await interaction.response.send_message(
-                f"Welcome, {interaction.user}!", ephemeral=True
-            )
-        
+    async def welcome(self, interaction: discord.Interaction):
+        await interaction.response.send_message(
+            f"Welcome, {interaction.user}!", ephemeral=True
+        )
 
     @app_commands.command()
-    async def salute(interaction: discord.Interaction):
+    async def salute(self, interaction: discord.Interaction):
         await interaction.response.send_message(
             f"Hello, {interaction.user}!", ephemeral=True
         )
 
     @app_commands.command()
-    async def goodbye(interaction: discord.Interaction):
+    async def goodbye(self, interaction: discord.Interaction):
         await interaction.response.send_message(
             f"Bye bye, {interaction.user}!", ephemeral=True
         )

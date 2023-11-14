@@ -5,8 +5,9 @@ import discord
 from discord.ext import commands
 import random
 from dotenv import load_dotenv
+import mongo_connector
 
-# import data_query
+entryData = mongo_connector.mongo_connector()
 
 
 load_dotenv()
@@ -27,87 +28,84 @@ async def on_ready():
         print(e)
 
 
-
-
-persData = {
-    "id": "65516c22b8f97f0b07bab621",
-    "name": "Glaurimm",
-    "dueno": "Wheist",
-    "lvl": 10,
-    "xp": 63190,
-    "oro": 14.67,
-    "fort": 8,
-    "prest": 13,
-    "evento": 2,
-    "clases": ["Warlock(Genie).9", "Clerigo.1"],
-    "raza": "Genasi(water)",
-    "hp": 70,
-    "fue": 8,
-    "dex": 13,
-    "con": 16,
-    "int": 12,
-    "wis": 10,
-    "cha": 18,
-    "dias": 69,
-    "asiMaster": False,
-    "featMaster": True,
-}
-
-
 @bot.tree.command()
-async def personajeinfo(interation: discord.Interaction):
-    persTemp = discord.Embed(
-        title=persData["name"],
-        description="Del usuario " + persData["dueno"],
-        colour=0x00FF00,
-    )
-    persTemp.add_field(name="Raza:", value=persData["raza"])
-    persTemp.add_field(name="Vida:", value=persData["hp"])
-    persTemp.add_field(name="Exp:", value=persData["xp"])
-    persTemp.add_field(
-        name="Clases",
-        value="\n".join(["- " + x for x in persData["clases"]]),
-        inline=False,
-    )
-    persTemp.add_field(name="Fuerza:", value=persData["fue"])
-    persTemp.add_field(name="Destreza:", value=persData["dex"])
-    persTemp.add_field(name="Constitución:", value=persData["con"])
-    persTemp.add_field(name="Inteligencia:", value=persData["int"])
-    persTemp.add_field(name="Sabiduría:", value=persData["wis"])
-    persTemp.add_field(name="Carisma:", value=persData["cha"])
-    persTemp.add_field(
-        name="Oro:",
-        value=str(int(persData["oro"]))
-        + " gp "
-        + str(persData["oro"])[-2]
-        + " sp "
-        + str(persData["oro"])[-1]
-        + " cp ",
-        inline=False,
-    )
-    persTemp.add_field(name="Fortuna:", value=persData["fort"])
-    persTemp.add_field(name="Prestigio:", value=persData["prest"])
-    persTemp.add_field(name="", value="")
-    persTemp.add_field(name="Evento:", value=persData["evento"])
-    persTemp.add_field(name="Chikievento:", value=persData["evento"])
-    persTemp.add_field(name="", value="")
-    persTemp.add_field(name="Descanso:", value=persData["dias"])
-    persTemp.add_field(name="Asi de master:", value="Usada" if persData["asiMaster"] else "No Usada")
-    persTemp.add_field(name="Feat de master:", value="Usada" if persData["featMaster"] else "No Usada")
-    await interation.response.send_message(embed=persTemp)
-   
- 
-@bot.tree.command(name="detalles")
-async def detalles(interation: discord.Interaction):
-    if (interation.user.id == 254986912480231424) :
-        if (interation.channel_id == 1173305500448858123) :
-            await interation.response.send_message("Hola " + interation.user.display_name)
-            
-        else :
-            await interation.response.send_message("Canal incorrecto " + interation.user.display_name)
+async def personajeinfo(interation: discord.Interaction, name: str):
+    if interation.channel_id == 1174044792569724999 :
+        persData = entryData.get_character(name)
+
+        if persData:
+            persTemp = discord.Embed(
+                title=persData["Personaje"],
+                description="Del usuario " + persData["Dueño"],
+                colour=discord.Color.purple(),
+            )
+
+            persTemp.add_field(name="Raza:", value=persData["Race"])
+            persTemp.add_field(name="Vida:", value=persData["HP"])
+            persTemp.add_field(name="Exp:", value=persData["XP"])
+            persTemp.add_field(
+                name="Clases",
+                value="\n".join(["- " + x for x in (persData["Clases"].split(","))]),
+                inline=False,
+            )
+            persTemp.add_field(name="Fuerza:", value=persData["FUE"])
+            persTemp.add_field(name="Destreza:", value=persData["DEX"])
+            persTemp.add_field(name="Constitución:", value=persData["CON"])
+            persTemp.add_field(name="Inteligencia:", value=persData["INT"])
+            persTemp.add_field(name="Sabiduría:", value=persData["WIS"])
+            persTemp.add_field(name="Carisma:", value=persData["CHA"])
+            persTemp.add_field(
+                name="Oro:",
+                value=str(int(persData["GP"]))
+                + " gp "
+                + str(persData["GP"])[-2]
+                + " sp "
+                + str(persData["GP"])[-1]
+                + " cp ",
+                inline=False,
+            )
+            persTemp.add_field(name="Fortuna:", value=persData["Fortuna"])
+            persTemp.add_field(name="Prestigio:", value=persData["Prestigio"])
+            persTemp.add_field(name="", value="")
+            persTemp.add_field(name="Evento:", value=persData["Evento"])
+            persTemp.add_field(name="Chikievento:", value=persData["Chikievento"])
+            persTemp.add_field(
+                name="Rabo", value=persData.get("rabo", "No sabe no responde.")
+            )
+            persTemp.add_field(name="Descanso:", value=persData["Descanso"])
+            persTemp.add_field(
+                name="Asi de master:",
+                value="Usada" if persData["Stats de master"] else "No Usada",
+            )
+            persTemp.add_field(
+                name="Feat de master:",
+                value="Usada" if persData["Feat de Mastter"] else "No Usada",
+            )
+
+            await interation.response.send_message(embed=persTemp)
+
+        else:
+            await interation.response.send_message("El personaje no existe", ephemeral=True)
+    
     else:
-        await interation.response.send_message(interation.user.display_name + " tu no eres mi maestro.")
+        await interation.response.send_message(
+            "Canal incorrecto " + interation.user.display_name
+        )
         
+
+@bot.tree.command(name="pito")
+async def pito(interation: discord.Interaction, name: str):
+    if interation.channel_id == 1174044308417028197:
+        rabo = entryData.get_character(name).get("rabo")
+        if rabo is None :
+            entryData.update_character(name)
+            await interation.response.send_message("Tu pito es de " + entryData.get_character(name).get("rabo"))
+        else : 
+            await interation.response.send_message("Te jodes con el pito que tienes.")
+    else :
+        await interation.response.send_message(
+            "Canal incorrecto " + interation.user.display_name
+        )
 
 
 bot.run(TOKEN)

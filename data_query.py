@@ -26,10 +26,8 @@ class dnddata:
 
     def get_query(self, type="char", query="Ejemplo"):
         if type == "char":
-            return str(
-                self.char_data[self.char_data["Personaje"] == query].to_dict("records")[
-                    0
-                ]
+            return dict(
+                self.char_data[self.char_data["Personaje"] == query].to_dict("records")[0]
             )
         elif type == "player":
             return str(
