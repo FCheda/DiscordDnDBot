@@ -136,7 +136,17 @@ async def on_message(message):
         response = random.choice(sex_quotes)
         await message.channel.send(response)
 
-    commands = ["!get character ", "!get player ", "!update character "]
+    commands = [
+        "!get character ",
+        "!get player ",
+        "!update character ",
+        "!player character ",
+        "!insert log ",
+        "!get class ",
+        "!get race ",
+        "!get classes ",
+        "!get races ",
+    ]
 
     if commands[0] in str(message.content):
         # response = "character query: " + message.content[len(commands[0]) :]
@@ -149,6 +159,32 @@ async def on_message(message):
         response = connector.update_character(
             message.content[len(commands[2]) :],
         )
+        await message.channel.send(str(response))
+    if commands[3] in str(message.content):
+        response = connector.update_player(
+            message.content[len(commands[3]) :],
+        )
+        await message.channel.send(str(response))
+    if commands[4] in str(message.content):
+        response = connector.insert_log(
+            message.content[len(commands[4]) :],
+        )
+        await message.channel.send(str(response))
+    if commands[5] in str(message.content):
+        response = connector.get_class(
+            class_name=message.content[len(commands[5]) :],
+        )
+        await message.channel.send(str(response))
+    if commands[6] in str(message.content):
+        response = connector.get_race(
+            race_name=message.content[len(commands[6]) :],
+        )
+        await message.channel.send(str(response))
+    if commands[7] in str(message.content):
+        response = connector.get_races(message.content[len(commands[6]) :], "races")
+        await message.channel.send(str(response))
+    if commands[8] in str(message.content):
+        response = connector.get_race(message.content[len(commands[6]) :], "classes")
         await message.channel.send(str(response))
     # if message.content == "Que piensas de Fedor?":
     #    response = "Ufff esta buenorro el tio pero lo tiene pillado ems :("
