@@ -54,7 +54,7 @@ persData = {
 }
 
 
-@bot.tree.command(name="personajeinfo")
+@bot.tree.command()
 async def personajeinfo(interation: discord.Interaction):
     persTemp = discord.Embed(
         title=persData["name"],
@@ -97,8 +97,8 @@ async def personajeinfo(interation: discord.Interaction):
     await interation.response.send_message(embed=persTemp)
    
  
-@bot.tree.command(name="personajeinfo")
-async def personajeinfo(interation: discord.Interaction):
+@bot.tree.command(name="detalles")
+async def detalles(interation: discord.Interaction):
     if (interation.user.id == 254986912480231424) :
         if (interation.channel_id == 1173305500448858123) :
             await interation.response.send_message("Hola " + interation.user.display_name)
