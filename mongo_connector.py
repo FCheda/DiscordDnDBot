@@ -79,6 +79,12 @@ class mongo_connector:
         else:
             return None
 
+    def insert_character(self, dict=None):
+        if dict is not None:
+            return self.client[dbname][character_collection].insert(dict)
+        else:
+            return None
+
     def get_classes(self, filter: dict = None, format: str = None):
         cursor = self.client[dbname][class_collection].find(filter)
         ret = cursor
@@ -121,6 +127,83 @@ class mongo_connector:
             )
         elif race_name is not None:
             return self.client[dbname][race_collection].find_one({"race": race_name})
+
+    def create_character(
+        self,
+        discord_channel,
+        user_id,
+        name,
+        race_name,
+        subrace_name,
+        class_name,
+        subclass_name,
+        _str,
+        _dex,
+        _con,
+        _int,
+        _wis,
+        _cha,
+        asi1,
+        asi2,
+        asi3=None,
+    ):
+        valid_channels = ["registros", "bot-test"]
+        if discord_channel not in valid_channels:
+            return "channel is not valid"
+
+        # TODO, check parameters are valid
+        exists = self.get_character(name)
+        if exists:
+            return "character name already exists"
+
+        asi1val = 1 if asi3 is None else 2
+        asi2val = 1
+        asi3val = 0 if asi3 is None else 1
+
+        for asi in [(asi1, asi1val), (asi2, asi2val), (asi3, asi3val)]:
+            target = None
+            if asi[0] == "str":
+                target = _str
+            if asi[0] == "dex":
+                target = _dex
+            if asi[0] == "con":
+                target = _con
+            if asi[0] == "int":
+                target = _int
+            if asi[0] == "wis":
+                target = _wis
+            if asi[0] == "cha":
+                target = _cha
+            if target is not None:
+                target += asi[1]
+
+        data = {
+            "Type": "Character",
+            "Personaje": name,
+            "Dueño": user_id,
+            "XP": 0,
+            "Fortuna": 0,
+            "Prestigio": 0,
+            "Evento": 0,
+            "Chikievento": 0,
+            "Descanso": 0,
+            "GP": 50,
+            "Level": 1,
+            "Clases": f"{class_name}:{subclass_name}",
+            "Race": f"{race_name}:{subrace_name}",
+            "HP": 10 + (_con // 2 - 5),
+            "FUE": _str,
+            "DEX": _dex,
+            "CON": _con,
+            "INT": _int,
+            "WIS": _wis,
+            "CHA": _cha,
+            "FEATS": "",
+            "Stats de master": False,
+            "Feat de Mastter": False,
+        }
+
+        self.insert_character(data)
 
 
 if __name__ == "__main__":
