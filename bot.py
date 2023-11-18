@@ -1,19 +1,21 @@
 # bot.py
 import os
 import sys
+import typing
 import discord
 from discord.ext import commands
+from discord import app_commands
 import random
-from dotenv import load_dotenv
-import data_query
+from dotenv import load_dotenv  #
+import mongo_connector
+
+
+connector = mongo_connector.mongo_connector()
 
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD = os.getenv("DISCORD_GUILD")
-
-
-data_querier = data_query.dnddata()
 
 
 intents = discord.Intents.default()
@@ -26,7 +28,7 @@ class CustomClient(discord.Client):
 """
 
 # bot command tests
-bot = commands.Bot(command_prefix="$", intents=intents)
+bot = commands.Bot(command_prefix="/", intents=intents)
 
 
 @bot.command(name="test")
@@ -39,6 +41,42 @@ async def _test(ctx, arg1, arg2):
     embed.add_field(name="Esto es un field con titulo", value="Valor del field")
     embed.add_field(name="Otro field", value="Valor del otro field")
     await ctx.send(embed=embed)
+
+
+@bot.tree.command(name="tree_test")
+async def _tree_test(interaction: discord.Interaction):
+    await interaction.response.send_message(
+        f"Hello word, {interaction.user.guild}!", ephemeral=True
+    )
+
+
+@bot.tree.command(name="drink")
+async def drink(interaction: discord.Interaction, item: str):
+    await interaction.response.send_message(
+        f"{item}, {interaction.user}!", ephemeral=True
+    )
+
+
+@drink.autocomplete("item")
+async def drink_autocompletion(
+    interaction: discord.Interaction, current: str
+) -> typing.List[app_commands.Choice[str]]:
+    data = []
+    for drink_choice in ["beer", "blood", "tea", "coffe"]:
+        if current.lower() in drink_choice.lower():
+            data.append(app_commands.Choice(name=drink_choice, value=drink_choice))
+    return data
+
+
+@bot.event
+async def on_ready():
+    print("online")
+
+    try:
+        synced = await bot.tree.sync()
+        print(f"Synced {len(synced)} command(s)")
+    except Exception as e:
+        print(e)
 
 
 # bot general tests
@@ -98,18 +136,56 @@ async def on_message(message):
         response = random.choice(sex_quotes)
         await message.channel.send(response)
 
-    commands = ["!get character ", "!get player "]
+    commands = [
+        "!get character ",
+        "!get player ",
+        "!update character ",
+        "!player character ",
+        "!insert log ",
+        "!get class ",
+        "!get race ",
+        "!get classes ",
+        "!get races ",
+    ]
 
     if commands[0] in str(message.content):
         # response = "character query: " + message.content[len(commands[0]) :]
-        response = data_querier.get_query(query=message.content[len(commands[0]) :])
+        response = connector.get_character(message.content[len(commands[0]) :])
         await message.channel.send(response)
     if commands[1] in str(message.content):
-        # response = "character query: " + message.content[len(commands[0]) :]
-        response = data_querier.get_query(
-            type="player", query=message.content[len(commands[1]) :]
-        )
+        response = connector.get_player(message.content[len(commands[1]) :])
         await message.channel.send(response)
+    if commands[2] in str(message.content):
+        response = connector.update_character(
+            message.content[len(commands[2]) :],
+        )
+        await message.channel.send(str(response))
+    if commands[3] in str(message.content):
+        response = connector.update_player(
+            message.content[len(commands[3]) :],
+        )
+        await message.channel.send(str(response))
+    if commands[4] in str(message.content):
+        response = connector.insert_log(
+            message.content[len(commands[4]) :],
+        )
+        await message.channel.send(str(response))
+    if commands[5] in str(message.content):
+        response = connector.get_class(
+            class_name=message.content[len(commands[5]) :],
+        )
+        await message.channel.send(str(response))
+    if commands[6] in str(message.content):
+        response = connector.get_race(
+            race_name=message.content[len(commands[6]) :],
+        )
+        await message.channel.send(str(response))
+    if commands[7] in str(message.content):
+        response = connector.get_races(message.content[len(commands[6]) :], "races")
+        await message.channel.send(str(response))
+    if commands[8] in str(message.content):
+        response = connector.get_race(message.content[len(commands[6]) :], "classes")
+        await message.channel.send(str(response))
     # if message.content == "Que piensas de Fedor?":
     #    response = "Ufff esta buenorro el tio pero lo tiene pillado ems :("
     #    await message.channel.send(response)

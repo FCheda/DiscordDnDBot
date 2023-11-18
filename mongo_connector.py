@@ -123,10 +123,29 @@ class mongo_connector:
         print(f"race is {race_name} , subrace is {subrace_name}")
         if race_name is not None and subrace_name is not None:
             return self.client[dbname][race_collection].find_one(
-                {"race": race_name, "subrace_name": race_name}
+                {"race": race_name, "subrace_name": subrace_name}
             )
         elif race_name is not None:
             return self.client[dbname][race_collection].find_one({"race": race_name})
+
+    def get_point_cost(self, asi):
+        point_cost = {
+            8: 0,
+            9: 1,
+            10: 2,
+            11: 3,
+            12: 3,
+            13: 5,
+            14: 7,
+            15: 9,
+        }
+        return point_cost.get(asi, None)
+
+    def check_point_buy(self, asis):
+        points = [self.get_point_cost(asi) for asi in asis]
+        if None not in points and sum(points) == 27:
+            return True
+        return False
 
     def create_character(
         self,
@@ -147,14 +166,56 @@ class mongo_connector:
         asi2,
         asi3=None,
     ):
+        """example = connector.create_character("registros","test","pika2","Dragonborn","Metalic","Artificer","Alchemist",15,15,15,8,8,8,"str","dex")"""
         valid_channels = ["registros", "bot-test"]
         if discord_channel not in valid_channels:
             return "channel is not valid"
 
         # TODO, check parameters are valid
+
+        # TODO, check if race and subrace are valid
+
+        db_race = self.get_race(race_name, subrace_name)
+        if db_race is not None:
+            print(f"selected raze is {db_race}")
+        else:
+            print("db_race is None")
+            return None
+
+        # TODO, check if class and subclass are valid
+
+        db_class = self.get_class(class_name, subclass_name)
+        if db_class is not None:
+            print(f"selected class is {db_class}")
+        else:
+            print("db_class is None")
+            return None
+
+        # TODO, check if numchars of the player allows for new char
+        # TODO, check if character name is avaliable
+
         exists = self.get_character(name)
         if exists:
             return "character name already exists"
+
+        # TODO, check if stats are valid in point buy
+        if (
+            self.check_point_buy(
+                [
+                    _str,
+                    _dex,
+                    _con,
+                    _int,
+                    _wis,
+                    _cha,
+                ]
+            )
+            is False
+        ):
+            return (None, "Asis are invalid")
+        # TODO, get correct hp and hpmods from class and subclass (we will store subclass and subrace values when checking)
+        base_hp = db_class["hp_dice"] + db_class["hp_mod"] + db_race["hp_mod"]
+        # TODO, change Feats to a list of feats, and include avaliable feats
 
         asi1val = 1 if asi3 is None else 2
         asi2val = 1
@@ -189,9 +250,9 @@ class mongo_connector:
             "Descanso": 0,
             "GP": 50,
             "Level": 1,
-            "Clases": f"{class_name}:{subclass_name}",
-            "Race": f"{race_name}:{subrace_name}",
-            "HP": 10 + (_con // 2 - 5),
+            "Clases": ({"class": class_name, "subclass": subclass_name, "lvl": 1}),
+            "Race": {"race": race_name, "subrace": subrace_name},
+            "HP": base_hp + (_con // 2 - 5),
             "FUE": _str,
             "DEX": _dex,
             "CON": _con,
@@ -203,7 +264,8 @@ class mongo_connector:
             "Feat de Mastter": False,
         }
 
-        self.insert_character(data)
+        result = self.insert_character(data)
+        return result
 
 
 if __name__ == "__main__":
