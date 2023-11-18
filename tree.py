@@ -1,10 +1,12 @@
 import os
 
 import discord
-import random
-import commands as logic
 from discord.ext import commands
 from discord import app_commands
+from discord import ui
+from discord.interactions import Interaction
+
+import mongo_connector as logic
 from typing import Optional
 from dotenv import load_dotenv
 
@@ -26,16 +28,18 @@ async def on_ready():
         print(e)
 
 
+
+
+class Modal(ui.Modal, title="Cesta de la compra:"):
+    name = ui.TextInput(label="Nombre del personaje:")
+    answer = ui.TextInput(label="Compra:",placeholder="- 1 Boat\n- 1 Fine Wine" ,style=discord.TextStyle.paragraph)
+    
+    async def on_submit(self, interaction: Interaction):
+        await interaction.response.send_message(f"Gracias por participar en esta encuesta, {self.name}!")
+
 @app_commands.guild_only()
 class personaje(app_commands.Group):
-    # Embed generico para enviarlo como mensaje al tener un canal erroneo.
-    genEmbed = discord.Embed(
-        title="Error",
-        description="Canal incorrecto, el canal es #registros",
-        colour=discord.Color.red(),
-    )
-
-    # Declaración del comando para almacenaje en el Bot.Tree
+        # Declaración del comando para almacenaje en el Bot.Tree
     @app_commands.command(
         name="crear", description="Permite crear un personaje nuevo a un usuario"
     )
@@ -58,20 +62,20 @@ class personaje(app_commands.Group):
     )
     # Decorator basado en cambiar el display name de los parametros
     @app_commands.rename(
-        name="Nombre",
-        race="Raza",
-        subrace="Sub-Raza",
-        clase="Clase",
-        subclase="Sub-clase",
-        fue="Fuerza",
-        dex="Dextreza",
-        con="Constitución",
-        inte="Inteligencia",
-        wis="Sabiduría",
-        cha="Carisma",
-        asi1="Modificador Principal",
-        asi2="Modificador Secundario",
-        asi3="Modificador Terciario",
+        name="nombre",
+        race="raza",
+        subrace="sub-raza",
+        clase="clase",
+        subclase="sub-clase",
+        fue="fuerza",
+        dex="dextreza",
+        con="constitución",
+        inte="inteligencia",
+        wis="sabiduría",
+        cha="carisma",
+        asi1="modificador_principal",
+        asi2="modificador_secundario",
+        asi3="modificador_terciario",
     )
     # Declaracion de la funcion que handlea el comando.
     async def crear(
@@ -92,17 +96,29 @@ class personaje(app_commands.Group):
         asi2: str,
         asi3: Optional[str],
     ):
-        if interaction.channel_id == 1174044308417028197:
-            
-            await interaction.response.send_message(interaction.user.id)
-        else:
-            await interaction.response.send_message(embed=genEmbed, ephemeral=True)
+        await interaction.response.send_message(name)
+        """ logic.mongo_connector.create_character(
+            interaction.channel,
+            interaction.user.id,
+            name,
+            race,
+            subrace,
+            clase,
+            subclase,
+            fue,
+            dex,
+            con,
+            inte,
+            wis,
+            cha,
+            asi1,
+            asi2,
+            asi3
+        ) """
 
     @app_commands.command()
     async def salute(self, interaction: discord.Interaction):
-        await interaction.response.send_message(
-            f"Hello, {interaction.user}!", ephemeral=True
-        )
+        await interaction.response.send_modal(Modal())
 
     @app_commands.command()
     async def goodbye(self, interaction: discord.Interaction):
