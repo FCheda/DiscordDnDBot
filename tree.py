@@ -41,7 +41,7 @@ class Modal(ui.Modal, title="Cesta de la compra:"):
 class personaje(app_commands.Group):
         # Declaración del comando para almacenaje en el Bot.Tree
     @app_commands.command(
-        name="crear", description="Permite crear un personaje nuevo a un usuario"
+        name="nuevo", description="Permite crear un personaje nuevo a un usuario"
     )
     # Descripción de los parametros que pide el comando
     @app_commands.describe(
@@ -78,7 +78,7 @@ class personaje(app_commands.Group):
         asi3="modificador_terciario",
     )
     # Declaracion de la funcion que handlea el comando.
-    async def crear(
+    async def nuevo(
         self,
         interaction: discord.Interaction,
         name: str,
