@@ -61,17 +61,19 @@ class mongo_connector:
                 )
 
     def update_player(self, player_name=None, dict=None):
+        print(f"updating player {player_name}")
         if player_name is not None:
             if dict is not None:
                 newvalues = {"$set": dict}
-                self.client[dbname][player_collection].update_one(
-                    {"Personaje": player_name}, newvalues
+                result = self.client[dbname][player_collection].update_one(
+                    {"Nombre": player_name}, newvalues
                 )
             else:
                 newvalues = {"$set": {"rabo": f"{random.randint(0,20)} cm"}}
-                self.client[dbname][player_collection].update_one(
-                    {"Personaje": player_name}, newvalues
+                result = self.client[dbname][player_collection].update_one(
+                    {"Nombre": player_name}, newvalues
                 )
+        return result
 
     def insert_log(self, dict=None):
         if dict is not None:
@@ -147,6 +149,9 @@ class mongo_connector:
             return True
         return False
 
+    def create_player(self, player_id: str):
+        pass
+
     def create_character(
         self,
         discord_channel,
@@ -171,18 +176,12 @@ class mongo_connector:
         if discord_channel not in valid_channels:
             return "channel is not valid"
 
-        # TODO, check parameters are valid
-
-        # TODO, check if race and subrace are valid
-
         db_race = self.get_race(race_name, subrace_name)
         if db_race is not None:
             print(f"selected raze is {db_race}")
         else:
             print("db_race is None")
             return None
-
-        # TODO, check if class and subclass are valid
 
         db_class = self.get_class(class_name, subclass_name)
         if db_class is not None:
@@ -191,14 +190,18 @@ class mongo_connector:
             print("db_class is None")
             return None
 
-        # TODO, check if numchars of the player allows for new char
-        # TODO, check if character name is avaliable
+        player = self.get_player(user_id)
+        if player is None:
+            self.create_player(user_id)
+            player = self.get_player(user_id)
+
+        if player.get("Current Pjs", 0) >= player.get("Max Pjs", 0):
+            return f"Max Pjs Reached, Current {player.get('Current Pjs',0)}, Max {player.get('Max Pjs',0)}"
 
         exists = self.get_character(name)
         if exists:
             return "character name already exists"
 
-        # TODO, check if stats are valid in point buy
         if (
             self.check_point_buy(
                 [
@@ -213,9 +216,12 @@ class mongo_connector:
             is False
         ):
             return (None, "Asis are invalid")
-        # TODO, get correct hp and hpmods from class and subclass (we will store subclass and subrace values when checking)
         base_hp = db_class["hp_dice"] + db_class["hp_mod"] + db_race["hp_mod"]
-        # TODO, change Feats to a list of feats, and include avaliable feats
+        _free_feats = 0
+        print(f"free feat is {db_race.get('free_feat',None)}")
+        if db_race.get("free_feat", None) is True:
+            print("adding free feat")
+            _free_feats = 1
 
         asi1val = 1 if asi3 is None else 2
         asi2val = 1
@@ -260,12 +266,17 @@ class mongo_connector:
             "WIS": _wis,
             "CHA": _cha,
             "FEATS": "",
+            "Unused Feats": _free_feats,
             "Stats de master": False,
             "Feat de Mastter": False,
         }
 
         result = self.insert_character(data)
-        return result
+        result2 = self.update_player(
+            user_id, {"Current Pjs": player.get("Current Pjs", 0) + 1}
+        )
+
+        return (result, result2)
 
 
 if __name__ == "__main__":
