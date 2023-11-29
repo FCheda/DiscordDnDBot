@@ -1,4 +1,5 @@
 import os
+import typing
 
 import discord
 from discord.ext import commands
@@ -6,7 +7,7 @@ from discord import app_commands
 from discord import ui
 from discord.interactions import Interaction
 
-import mongo_connector as logic
+import embedCreator as emb
 from typing import Optional
 from dotenv import load_dotenv
 
@@ -28,18 +29,9 @@ async def on_ready():
         print(e)
 
 
-
-
-class Modal(ui.Modal, title="Cesta de la compra:"):
-    name = ui.TextInput(label="Nombre del personaje:")
-    answer = ui.TextInput(label="Compra:",placeholder="- 1 Boat\n- 1 Fine Wine" ,style=discord.TextStyle.paragraph)
-    
-    async def on_submit(self, interaction: Interaction):
-        await interaction.response.send_message(f"Gracias por participar en esta encuesta, {self.name}!")
-
 @app_commands.guild_only()
 class personaje(app_commands.Group):
-        # Declaración del comando para almacenaje en el Bot.Tree
+    # Declaración del comando para almacenaje en el Bot.Tree
     @app_commands.command(
         name="nuevo", description="Permite crear un personaje nuevo a un usuario"
     )
@@ -83,7 +75,7 @@ class personaje(app_commands.Group):
         interaction: discord.Interaction,
         name: str,
         race: str,
-        subrace: Optional[str],
+        subrace: str,
         clase: str,
         subclase: Optional[str],
         fue: int,
@@ -115,18 +107,51 @@ class personaje(app_commands.Group):
             asi2,
             asi3
         ) """
+    
+    # Declaracion de las funciones de autocompletar
+    @nuevo.autocomplete("race")
+    async def auto_race(
+        self,
+        interaction: discord.Interaction,
+        current: str
+    ) -> typing.List[app_commands.Choice[str]]:
+        data = []
+        for races in ["human", "elf", "dwarf", "tieflin", "changelin"]:
+            if current.lower() in races.lower():
+                data.append(app_commands.Choice(name=races, value=races))
+        return data
+    
+    # Declaracion de funiones de autocompletar dependientes.
+    @nuevo.autocomplete("subrace")
+    async def auto_subrace(
+        self,
+        interaction: discord.Interaction,
+        current: str
+    ) -> typing.List[app_commands.Choice[str]]:
+        data = []
+        race = interaction.namespace.raza
+        subraces = {"human" : ["null"], "elf" : ["Wood", "High", "Drow", "Eladrin"], "dwarf" : ["Hill", "Mountain", "Fire"], "tieflin" : ["1", "2", "3", "4", "5", "6"], "changelin" : ["null"]}
+        for races in subraces[race]:
+            if current.lower() in races.lower():
+                data.append(app_commands.Choice(name=races, value=races))
+        return data
+
+    @app_commands.command(
+        name="info", description="Busca información sobre un personaje existente"
+    )
+    @app_commands.describe(name="Nombre del personaje")
+    @app_commands.rename(
+        name="nombre",
+    )
+    async def info(self, interaction: discord.Interaction, name: str):
+        pass
 
     @app_commands.command()
     async def salute(self, interaction: discord.Interaction):
-        await interaction.response.send_modal(Modal())
+        pass
 
-    @app_commands.command()
-    async def goodbye(self, interaction: discord.Interaction):
-        await interaction.response.send_message(
-            f"Bye bye, {interaction.user}!", ephemeral=True
-        )
-
-
+bot.tree.clear_commands(guild=None)
 bot.tree.add_command(personaje())
+
 
 bot.run(TOKEN)

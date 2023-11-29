@@ -10,25 +10,6 @@ import mongo_connector
 entryData = mongo_connector.mongo_connector()
 
 
-load_dotenv()
-TOKEN = os.getenv("DISCORD_TOKEN")
-GUILD = os.getenv("DISCORD_GUILD")
-
-bot = commands.Bot(command_prefix="!", intents=discord.Intents.default())
-
-
-@bot.event
-async def on_ready():
-    print("Online")
-
-    try:
-        synced = await bot.tree.sync()
-        print(f"Synced {len(synced)} command(s)")
-    except Exception as e:
-        print(e)
-
-
-@bot.tree.command()
 async def personajeinfo(interation: discord.Interaction, name: str):
     if interation.channel_id == 1174044792569724999 :
         persData = entryData.get_character(name)
@@ -92,20 +73,6 @@ async def personajeinfo(interation: discord.Interaction, name: str):
             "Canal incorrecto " + interation.user.display_name
         )
         
-
-@bot.tree.command(name="pito")
-async def pito(interation: discord.Interaction, name: str):
-    if interation.channel_id == 1174044308417028197:
-        rabo = entryData.get_character(name).get("rabo")
-        if rabo is None :
-            entryData.update_character(name)
-            await interation.response.send_message("Tu pito es de " + entryData.get_character(name).get("rabo"))
-        else : 
-            await interation.response.send_message("Te jodes con el pito que tienes.")
-    else :
-        await interation.response.send_message(
-            "Canal incorrecto " + interation.user.display_name
-        )
-
-
-bot.run(TOKEN)
+async def nuevoPersonaje():
+    pass
+        
