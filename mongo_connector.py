@@ -223,9 +223,14 @@ class mongo_connector:
             print("adding free feat")
             _free_feats = 1
 
-        asi1val = 1 if asi3 is None else 2
-        asi2val = 1
-        asi3val = 0 if asi3 is None else 1
+        if _free_feats == 0:
+            asi1val = 1 if asi3 is None else 2
+            asi2val = 1
+            asi3val = 0 if asi3 is None else 1
+        else:
+            asi1val = 1 if asi2 is None else 2
+            asi2val = 0 if asi2 is None else 1
+            asi3val = 0
 
         for asi in [(asi1, asi1val), (asi2, asi2val), (asi3, asi3val)]:
             target = None
