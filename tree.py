@@ -8,6 +8,7 @@ from discord import ui
 from discord.interactions import Interaction
 
 import embedCreator as emb
+import mongo_connector as mongo 
 from typing import Optional
 from dotenv import load_dotenv
 
@@ -116,7 +117,7 @@ class personaje(app_commands.Group):
         current: str
     ) -> typing.List[app_commands.Choice[str]]:
         data = []
-        for races in ["human", "elf", "dwarf", "tieflin", "changelin"]:
+        for races in mongo.mongo_connector.get_classes({},"race"):
             if current.lower() in races.lower():
                 data.append(app_commands.Choice(name=races, value=races))
         return data
