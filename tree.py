@@ -110,20 +110,46 @@ class personaje(app_commands.Group):
         ) """
     
     # Declaracion de las funciones de autocompletar
-    @nuevo.autocomplete("race")
+    @nuevo.autocomplete("raza")
     async def auto_race(
         self,
         interaction: discord.Interaction,
         current: str
     ) -> typing.List[app_commands.Choice[str]]:
         data = []
-        for races in mongo.mongo_connector.get_classes({},"race"):
+        for races in mongo.mongo_connector.get_races({},"race"):
+            if current.lower() in races.lower():
+                data.append(app_commands.Choice(name=races, value=races))
+        return data
+    
+    @nuevo.autocomplete("class")
+    async def auto_race(
+        self,
+        interaction: discord.Interaction,
+        current: str
+    ) -> typing.List[app_commands.Choice[str]]:
+        data = []
+        for races in mongo.mongo_connector.get_classes({},"class"):
             if current.lower() in races.lower():
                 data.append(app_commands.Choice(name=races, value=races))
         return data
     
     # Declaracion de funiones de autocompletar dependientes.
-    @nuevo.autocomplete("subrace")
+    @nuevo.autocomplete("sub-raza")
+    async def auto_subrace(
+        self,
+        interaction: discord.Interaction,
+        current: str
+    ) -> typing.List[app_commands.Choice[str]]:
+        data = []
+        race = interaction.namespace.raza
+        subraces = {"human" : ["null"], "elf" : ["Wood", "High", "Drow", "Eladrin"], "dwarf" : ["Hill", "Mountain", "Fire"], "tieflin" : ["1", "2", "3", "4", "5", "6"], "changelin" : ["null"]}
+        for races in subraces[race]:
+            if current.lower() in races.lower():
+                data.append(app_commands.Choice(name=races, value=races))
+        return data
+    
+    @nuevo.autocomplete("sub-clase")
     async def auto_subrace(
         self,
         interaction: discord.Interaction,
@@ -137,6 +163,7 @@ class personaje(app_commands.Group):
                 data.append(app_commands.Choice(name=races, value=races))
         return data
 
+    # Comando para sacar informacion de un personaje
     @app_commands.command(
         name="info", description="Busca información sobre un personaje existente"
     )
@@ -146,9 +173,13 @@ class personaje(app_commands.Group):
     )
     async def info(self, interaction: discord.Interaction, name: str):
         pass
-
-    @app_commands.command()
-    async def salute(self, interaction: discord.Interaction):
+    
+    # Comando para subir de nivel un personaje.
+    @app_commands.command(
+        name="nivel", description="Sube de nivel a un personaje"
+    )
+    @app_commands.describe(name="Nombre del persasonaje para subir de nivel")
+    async def nivil(self, interaction: discord.Interaction, name: str):
         pass
 
 bot.tree.clear_commands(guild=None)
