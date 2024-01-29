@@ -8,7 +8,7 @@ from discord import ui
 from discord.interactions import Interaction
 
 import embedCreator as emb
-import mongo_connector as mongo 
+import mongo_connector as mongo
 from typing import Optional
 from dotenv import load_dotenv
 
@@ -32,6 +32,7 @@ async def on_ready():
 
 @app_commands.guild_only()
 class personaje(app_commands.Group):
+    
     # Declaración del comando para almacenaje en el Bot.Tree
     @app_commands.command(
         name="nuevo", description="Permite crear un personaje nuevo a un usuario"
@@ -89,8 +90,7 @@ class personaje(app_commands.Group):
         asi2: str,
         asi3: Optional[str],
     ):
-        await interaction.response.send_message(name)
-        """ logic.mongo_connector.create_character(
+        respuesta = mongo.mongo_connector.create_character(
             interaction.channel,
             interaction.user.id,
             name,
@@ -106,58 +106,64 @@ class personaje(app_commands.Group):
             cha,
             asi1,
             asi2,
-            asi3
-        ) """
-    
+            asi3,
+        )
+
+        if respuesta:
+            await interaction.response.send_message(
+                embed=emb.template_generic(True, respuesta, interaction)
+            )
+        else:
+            await interaction.response.send_message(
+                embed=emb.template_generic(False, respuesta, interaction)
+            )
+
     # Declaracion de las funciones de autocompletar
     @nuevo.autocomplete("raza")
     async def auto_race(
-        self,
-        interaction: discord.Interaction,
-        current: str
+        self, interaction: discord.Interaction, current: str
     ) -> typing.List[app_commands.Choice[str]]:
         data = []
-        for races in mongo.mongo_connector.get_races({},"race"):
+        for races in mongo.mongo_connector.get_races(format="race"):
             if current.lower() in races.lower():
                 data.append(app_commands.Choice(name=races, value=races))
         return data
-    
+
     @nuevo.autocomplete("class")
     async def auto_race(
-        self,
-        interaction: discord.Interaction,
-        current: str
+        self, interaction: discord.Interaction, current: str
     ) -> typing.List[app_commands.Choice[str]]:
         data = []
-        for races in mongo.mongo_connector.get_classes({},"class"):
+        for races in mongo.mongo_connector.get_classes({}, "class"):
             if current.lower() in races.lower():
                 data.append(app_commands.Choice(name=races, value=races))
         return data
-    
+
     # Declaracion de funiones de autocompletar dependientes.
     @nuevo.autocomplete("sub-raza")
     async def auto_subrace(
-        self,
-        interaction: discord.Interaction,
-        current: str
+        self, interaction: discord.Interaction, current: str
     ) -> typing.List[app_commands.Choice[str]]:
         data = []
-        race = interaction.namespace.raza
-        subraces = {"human" : ["null"], "elf" : ["Wood", "High", "Drow", "Eladrin"], "dwarf" : ["Hill", "Mountain", "Fire"], "tieflin" : ["1", "2", "3", "4", "5", "6"], "changelin" : ["null"]}
-        for races in subraces[race]:
+        subrace = mongo.mongo_connector.get_races({"race":interaction.namespace.raza},format="subrace")
+        for races in subrace:
             if current.lower() in races.lower():
                 data.append(app_commands.Choice(name=races, value=races))
         return data
-    
+
     @nuevo.autocomplete("sub-clase")
     async def auto_subrace(
-        self,
-        interaction: discord.Interaction,
-        current: str
+        self, interaction: discord.Interaction, current: str
     ) -> typing.List[app_commands.Choice[str]]:
         data = []
         race = interaction.namespace.raza
-        subraces = {"human" : ["null"], "elf" : ["Wood", "High", "Drow", "Eladrin"], "dwarf" : ["Hill", "Mountain", "Fire"], "tieflin" : ["1", "2", "3", "4", "5", "6"], "changelin" : ["null"]}
+        subraces = {
+            "human": ["null"],
+            "elf": ["Wood", "High", "Drow", "Eladrin"],
+            "dwarf": ["Hill", "Mountain", "Fire"],
+            "tieflin": ["1", "2", "3", "4", "5", "6"],
+            "changelin": ["null"],
+        }
         for races in subraces[race]:
             if current.lower() in races.lower():
                 data.append(app_commands.Choice(name=races, value=races))
@@ -172,15 +178,35 @@ class personaje(app_commands.Group):
         name="nombre",
     )
     async def info(self, interaction: discord.Interaction, name: str):
-        pass
-    
+        await interaction.response.send_message(embed=emb.template_personaje(interaction, name))
+
     # Comando para subir de nivel un personaje.
-    @app_commands.command(
-        name="nivel", description="Sube de nivel a un personaje"
-    )
+    @app_commands.command(name="nivel", description="Sube de nivel a un personaje")
     @app_commands.describe(name="Nombre del persasonaje para subir de nivel")
-    async def nivil(self, interaction: discord.Interaction, name: str):
-        pass
+    async def nivel(self, interaction: discord.Interaction, name: str):
+        respuesta = mongo.mongo_connector #subir nivel 
+       
+        if respuesta == "":
+            await interaction.response.send_message(
+                embed=emb.template_generic(True, respuesta, interaction)
+            )
+        else:
+            await interaction.response.send_message(
+                embed=emb.template_generic(False, respuesta, interaction)
+            ) 
+        
+    # Declaracion de las funciones de autocompletar nombre de pj dependiendo del jugador que interactue
+    @nuevo.autocomplete("name")
+    async def auto_name(
+        self, interaction: discord.Interaction, current: str
+    ) -> typing.List[app_commands.Choice[str]]:
+        data = []
+        for races in mongo.mongo_connector.get_races({}, "race"):
+            if current.lower() in races.lower():
+                data.append(app_commands.Choice(name=races, value=races))
+        return data
+        
+
 
 bot.tree.clear_commands(guild=None)
 bot.tree.add_command(personaje())
