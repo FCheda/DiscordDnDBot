@@ -83,7 +83,7 @@ async def on_ready():
 client = discord.Client(intents=intents)
 
 
-bot_channels = ["bot-test"]
+bot_channels = ["bot-test", "sorpresas-navideñas", "recompensas"]
 
 
 @client.event
@@ -146,6 +146,7 @@ async def on_message(message):
         "!get race ",
         "!get classes ",
         "!get races ",
+        "!navidad ",
     ]
 
     if commands[0] in str(message.content):
@@ -185,6 +186,11 @@ async def on_message(message):
         await message.channel.send(str(response))
     if commands[8] in str(message.content):
         response = connector.get_race(message.content[len(commands[6]) :], "classes")
+        await message.channel.send(str(response))
+    if commands[9] in str(message.content):
+        response = connector.navidad(
+            message.content[len(commands[9]) :], message.author.name
+        )
         await message.channel.send(str(response))
     # if message.content == "Que piensas de Fedor?":
     #    response = "Ufff esta buenorro el tio pero lo tiene pillado ems :("

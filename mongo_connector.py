@@ -143,6 +143,48 @@ class mongo_connector:
         }
         return point_cost.get(asi, None)
 
+    def navidad(self, character_name=None, autor=None):
+        cursor_player = self.client[dbname]["test_navidad"].find_one(
+            {"pj": character_name, "player": str(autor)}
+        )
+        if cursor_player is None:
+            return f"{str(autor)} no tiene ningun personaje llamado {character_name}"
+        # cursor_regalos = self.client[dbname]["test_navidad_regalos"].find(filter)
+        if cursor_player.get("regalo", None) is not None:
+            return "solo 1 regalo por cabeza"
+
+        print(type(cursor_player))
+        pprint.pprint(cursor_player)
+
+        regalo = ["nombre_regalo", "descripcion_regalo"]
+
+        roll = random.randint(1, 20)
+
+        if character_name == "Test":
+            roll = 25
+
+        cursor_regalos = self.client[dbname]["test_navidad_regalos"].find_one(
+            {"roll": roll}
+        )
+
+        if cursor_regalos is not None:
+            regalo[0] = cursor_regalos["item"]
+            regalo[1] = cursor_regalos["description"]
+        else:
+            return "Algo extraño ha pasado, regalo no encontrado"
+
+        print("updating char...")
+        self.client[dbname]["test_navidad"].update_one(
+            {"pj": character_name}, {"$set": {"regalo": regalo[0]}}
+        )
+
+        # return "hiden test"
+
+        print("Message autor is: " + str(autor))
+        result = f"{character_name} ha abierto su regalo y ha encontrado: {regalo[0]} !!! \n {regalo[1]}"
+        print(result)
+        return result
+
     def check_point_buy(self, asis):
         points = [self.get_point_cost(asi) for asi in asis]
         if None not in points and sum(points) == 27:
@@ -155,7 +197,7 @@ class mongo_connector:
     def create_character(
         self,
         discord_channel,
-        user_id,
+        user_id,  # id discord
         name,
         race_name,
         subrace_name,
@@ -281,7 +323,7 @@ class mongo_connector:
             user_id, {"Current Pjs": player.get("Current Pjs", 0) + 1}
         )
 
-        return (result, result2)
+        return (result, result2)  # TODO retornar None a la interfaz si funciono.
 
 
 if __name__ == "__main__":
