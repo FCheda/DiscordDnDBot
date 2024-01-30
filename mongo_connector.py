@@ -325,6 +325,105 @@ class mongo_connector:
 
         return (result, result2)  # TODO retornar None a la interfaz si funciono.
 
+    ##logs
+    def get_player_log_rewards(self, base_rewards):
+        # TODO: cambar para que reciba las tuplas separadas por espacio y asigne a cada valor  sin importar posicion
+        print(base_rewards)
+        while len(base_rewards) < 7:
+            base_rewards.append(0)
+        dict = {
+            "XP": int(base_rewards[0]),
+            "Descanso": int(base_rewards[1]),
+            "GP": float(base_rewards[2]),
+            "Fortuna": int(base_rewards[3]),
+            "Prestigio": float(base_rewards[4]),
+            "Evento": float(base_rewards[5]),
+            "Chiquievento": float(base_rewards[6]),
+        }
+        return dict
+
+    def get_character_update_dict(self, character, rewards):
+        foo = self.get_character(character)
+        for key in rewards.keys():
+            rewards[key] = rewards[key] + foo.get(key, 0)
+        return rewards
+
+    def get_gm_rewards(self, base_rewards):
+        dict = {
+            "Dias GM": int(base_rewards[1]),
+            "Puntos GM": 3,
+            "Partidas GM": 1,
+        }
+        return dict
+
+    def get_gm_update_dict(self, player, rewards):
+        foo = self.get_player(player)
+        for key in rewards.keys():
+            rewards[key] = rewards[key] + foo.get(key, 0)
+        return rewards
+
+    def process_log(self, channel, gm, log):
+        """
+
+        example: process_log("logs","Kana",log)
+        """
+        valid_channels = ["log", "bot_log_tests"]
+        if channel not in valid_channels:
+            message = "Log has not been processed, wrong channel"
+            return message
+
+        lines = log.split("\n")
+        log_dict = {}
+        base_rewards = []
+        base_players = []
+
+        lines = [line for line in lines if line != ""]
+        if len(lines) < 3:
+            return "At least 2 lines are required"
+        if self.get_player(gm) is None:
+            return "invalid player/gm"
+        for index, line in enumerate(lines[:3]):
+            # print(index,line)
+            if index == 1:
+                base_rewards = [
+                    i.strip().split(" ")[0]
+                    for i in line[len("Recompensas:") :].split(",")
+                ]
+            if index == 2:
+                base_players = [
+                    i.strip() for i in line[len("Participantes:") :].split(",")
+                ]
+
+        for player in base_players:
+            log_dict[player] = self.get_player_log_rewards(base_rewards)
+        for index, line in enumerate(lines[3:]):
+            if line[: len("Especial:")] == "Especial:":
+                tokens = [x.strip() for x in line[len("Especial:") :].split(",")]
+                special_players = tokens[:-5]
+                special_rewards = [token.split(" ")[0] for token in tokens[-5:]]
+                for player in special_players:
+                    if player not in log_dict:
+                        message = f"{gm} cabrón, no me jodas el bot -> especial {player} NO esta en la lista de jugadores"
+                        print(message)
+                        return message
+                    else:
+                        log_dict[player] = self.get_player_log_rewards(special_rewards)
+
+        for character, rewards in log_dict.items():
+            update_rewards = self.get_character_update_dict(character, rewards)
+            self.update_character(character, update_rewards)
+        # master rewards
+        gm_rewards = self.get_gm_update_dict(gm, self.get_gm_rewards(base_rewards))
+        self.update_player(gm, gm_rewards)
+
+        pprint.pprint(log_dict)
+        pprint.pprint(gm_rewards)
+        message = "log succesfull"
+
+        # TODO, add insert the full log in a new table
+
+        return message
+
 
 if __name__ == "__main__":
     print("testing mongo connection")

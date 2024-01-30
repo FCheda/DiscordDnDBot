@@ -9,6 +9,8 @@ import random
 from dotenv import load_dotenv  #
 import mongo_connector
 
+import custom_commands
+
 
 connector = mongo_connector.mongo_connector()
 
@@ -83,7 +85,7 @@ async def on_ready():
 client = discord.Client(intents=intents)
 
 
-bot_channels = ["bot-test", "sorpresas-navideñas", "recompensas"]
+bot_channels = ["bot-test", "sorpresas-navideñas", "recompensas", "bot_log_tests"]
 
 
 @client.event
@@ -108,9 +110,11 @@ async def on_message(message):
     print(f"System_Content: {message.system_content}")
 
     if message.channel.name not in bot_channels:
+        print("invalid channel")
         return
 
     if message.author == client.user:
+        print("bad author")
         return
 
     brooklyn_99_quotes = [
@@ -129,12 +133,27 @@ async def on_message(message):
         "I liked it so its mine UwU",
     ]
 
+    # listeners
     if message.content == "99!":
         response = random.choice(brooklyn_99_quotes)
         await message.channel.send(response)
     if message.content == "69!":
         response = random.choice(sex_quotes)
         await message.channel.send(response)
+    if (
+        str(message.channel) == "bot_log_tests"
+    ):  # and message.author.id != "D&D Bot#5178":
+        # response = random.choice(sex_quotes)
+        # await message.channel.send(response)
+        # print("GOT LOG !!! PROCESSING")
+
+        response = connector.process_log(
+            str(message.channel), str(message.author.name), str(message.content)
+        )
+        print(response)
+        await message.channel.send(response)
+
+    # commands
 
     commands = [
         "!get character ",
@@ -151,8 +170,14 @@ async def on_message(message):
 
     if commands[0] in str(message.content):
         # response = "character query: " + message.content[len(commands[0]) :]
-        response = connector.get_character(message.content[len(commands[0]) :])
-        await message.channel.send(response)
+        # embed = custom_commands.personajeinfo(connector, None, None, message.content[len(commands[0]) :])
+        embed = custom_commands.template_personaje(
+            connector, message, message.content[len(commands[0]) :]
+        )
+        # response = connector.get_character(message.content[len(commands[0]) :])
+        # embed = discord.Embed(title="Title", description="Desc", color=0x00FF00)
+        await message.channel.send(embed=embed)
+        # await interationresponse.send_message(embed=persTemp)
     if commands[1] in str(message.content):
         response = connector.get_player(message.content[len(commands[1]) :])
         await message.channel.send(response)
@@ -210,11 +235,5 @@ if __name__ == "__main__":
             print("starting as bot")
             bot.run(TOKEN)
     else:
-        print(
-            """
-      Usage
-      
-      missing command -bot or -cli
-      
-      """
-        )
+        print("starting as client: this is the current default behaviour")
+        client.run(TOKEN)

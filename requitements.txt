@@ -11,3 +11,6 @@ google-auth-oauthlib
 # mongo
 pymongo
 dnspython
+
+#validators
+validators
