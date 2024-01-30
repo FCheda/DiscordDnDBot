@@ -34,17 +34,17 @@ def template_personaje(interation: discord.Interaction, name: str):
         305000,
         355000
     ]
-    xp_req = info["XP"] - xps[info["LVL"] - 1] if info["LVL"] <= 20 else 0
+    xp_req = info["XP"] - xps[info["Level"] - 1] if info["Level"] <= 20 else 0
     # Indicado para revisar por el tema de guardar el lvl.
 
     template_pj = discord.Embed(
-        title=info["personaje"] + " LvL " + info["LVL"],
+        title=info["Personaje"] + " LvL " + info["Level"],
         colour=0x800080,
         timestamp=datetime.now(),
     )  # Indicado para revisar por el tema de guardar el lvl.
 
     template_pj.set_author(
-        name=interation.guild.get_member(info["dueño"]).display_name, icon_url=interation.guild.get_member(info["dueño"]).display_avatar
+        name=interation.guild.get_member(info["Dueño"]).display_name, icon_url=interation.guild.get_member(info["Dueño"]).display_avatar
     )
 
     template_pj.add_field(name="Fuerza:", value=info["FUE"], inline=True)
@@ -57,7 +57,7 @@ def template_personaje(interation: discord.Interaction, name: str):
     template_pj.add_field(name="HP", value=info["HP"], inline=True)
     template_pj.add_field(
         name="XP",
-        value=info["XP"] + (" / " + xp_req if info["LVL"] <= 20 else ""), # 150/300
+        value=info["XP"] + (" / " + xp_req if info["Level"] <= 20 else ""), # 150/300
         inline=True,
     )
     template_pj.add_field(
