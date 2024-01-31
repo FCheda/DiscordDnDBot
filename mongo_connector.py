@@ -16,6 +16,8 @@ player_collection = "test_player"
 logs_collection = "test_log"
 class_collection = "test_classes"
 race_collection = "test_races"
+market_collection = "test_mercado"
+magic_items_collection = "test_magic_item_tables"
 
 
 class mongo_connector:
@@ -342,10 +344,15 @@ class mongo_connector:
         }
         return dict
 
-    def get_character_update_dict(self, character, rewards):
+    def get_character_update_dict(self, character, rewards, reverse=False):
         foo = self.get_character(character)
         for key in rewards.keys():
-            rewards[key] = rewards[key] + foo.get(key, 0)
+            if reverse is False:
+                rewards[key] = rewards[key] + foo.get(key, 0)
+            else:
+                rewards[key] = foo.get(key, 0) - rewards[key]
+                if rewards[key] < 0:
+                    return None
         return rewards
 
     def get_gm_rewards(self, base_rewards):
@@ -422,6 +429,73 @@ class mongo_connector:
 
         # TODO, add insert the full log in a new table
 
+        return message
+
+    # buy items
+    def get_item(self, item_name):
+        if item_name is not None:
+            return self.client[dbname][market_collection].find_one(
+                {"Nombre": item_name}
+            )
+
+    def get_items_cost(self, items_dict, sell):
+        cost = {}
+        mult = 1
+        if sell:
+            mult = -0.5
+
+        for item_name in items_dict.keys():
+            item = self.get_item(item_name)
+            if item is None:
+                return None
+            elif item.get("Disponible", None) != "SI":
+                return None
+            cost["GP"] = (
+                cost.get("GP", 0) + item.get("Precio", 0) * items_dict[item_name] * mult
+            )
+            cost["Fortuna"] = (
+                cost.get("Fortuna", 0)
+                + item.get("Fortuna", 0) * items_dict[item_name] * mult
+            )
+            cost["Prestigio"] = (
+                cost.get("Prestigio", 0)
+                + item.get("Prestigio", 0) * items_dict[item_name] * mult
+            )
+
+        return cost
+
+    def buy_or_sell_items(self, author, text):
+        lines = text.split("\n")
+        character = None
+        buy_dict = {}
+        sell = False
+        lines = [line for line in lines if line != ""]
+        for id, line in enumerate(lines):
+            if id == 0:
+                if "compra" in line[-(len(" compra:")) :]:
+                    character_name = line[: -(len(" compra:"))]
+                elif "vende" in line[-(len(" vende:")) :]:
+                    character_name = line[: -(len(" vende:"))]
+                    sell = True
+                character = self.get_character(character_name)
+                if character is not None and character.get("Dueño") != author:
+                    message = f"Error: {author} no tiene ningun personaje llamado {character_name}"
+                    return message
+            else:
+                split_line = line.split(" ")
+                buy_dict[" ".join(split_line[2:])] = int(split_line[1])
+        cost = self.get_items_cost(buy_dict, sell)
+        if cost is None:
+            message = "Error: Alguno de los objetos solicitados no esta disponible"
+            return message
+        update_dict = self.get_character_update_dict(
+            character.get("Personaje", None), cost, reverse=True
+        )
+        if update_dict is None:
+            message = "Error: No tienes suficientes recursos para pagar esa compra "
+            return message
+        result = self.update_character(character.get("Personaje", None), update_dict)
+        message = "Success"
         return message
 
 

@@ -85,7 +85,13 @@ async def on_ready():
 client = discord.Client(intents=intents)
 
 
-bot_channels = ["bot-test", "sorpresas-navideñas", "recompensas", "bot_log_tests"]
+bot_channels = [
+    "bot-test",
+    "sorpresas-navideñas",
+    "recompensas",
+    "bot_log_tests",
+    "bot_compras_tests",
+]
 
 
 @client.event
@@ -149,6 +155,18 @@ async def on_message(message):
 
         response = connector.process_log(
             str(message.channel), str(message.author.name), str(message.content)
+        )
+        print(response)
+        await message.channel.send(response)
+    if (
+        str(message.channel) == "bot_compras_tests"
+    ):  # and message.author.id != "D&D Bot#5178":
+        # response = random.choice(sex_quotes)
+        # await message.channel.send(response)
+        # print("GOT LOG !!! PROCESSING")
+
+        response = connector.buy_or_sell_items(
+            str(message.author.name), str(message.content)
         )
         print(response)
         await message.channel.send(response)
@@ -217,6 +235,7 @@ async def on_message(message):
             message.content[len(commands[9]) :], message.author.name
         )
         await message.channel.send(str(response))
+
     # if message.content == "Que piensas de Fedor?":
     #    response = "Ufff esta buenorro el tio pero lo tiene pillado ems :("
     #    await message.channel.send(response)
