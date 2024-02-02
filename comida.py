@@ -82,18 +82,19 @@ class Conn:
         values = (
             self.client[dbname][dbtable]
             .find({"tiradas": {"$exists": True, "$not": {"$size": 0}}})
-            .sort("pts", pymongo.DESCENDING)
+            .sort("pts", pymongo.ASCENDING)
         )
 
-        while values.alive:
-            print(values.next())
+        resultados = []
 
+        while values.alive:
+            resultados.insert(0, values.next())
+
+        return resultados
 
 
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.default())
 bd = Conn()
-
-bd.ranking()
 
 
 @bot.event
@@ -199,18 +200,109 @@ class evento(app_commands.Group):
     )
     # Declaracion de la funcion que handlea el comando.
     async def ranking(self, interaction: discord.Interaction):
-        color = discord.Color.dark_gold()
-        msg = ()
+        if interaction.channel_id == 1173305500448858123 or interaction.channel_id == 1201503427511992350:
+            stats = bd.ranking()
 
-        embed = discord.Embed(description=msg, colour=color)
+            min_luck = ["", 20]
+            max_luck = ["", 0]
+            max_salidas = ["", 0]
+            total_pts = 0
 
-        embed.set_author(name="Evento comida")
+            for data in stats:
+                suerte = data["dice"] / data["tiradas"]
+                if suerte < min_luck[1]:
+                    min_luck = [data["pj"], suerte]
 
-        await interaction.response.send_message(embed=embed)
+                if suerte > max_luck[1]:
+                    max_luck = [data["pj"], suerte]
+
+                if data["tiradas"] > max_salidas[1]:
+                    max_salidas = [data["pj"], data["tiradas"]]
+
+                total_pts = total_pts + data["pts"]
+                
+            color = discord.Color.dark_gold()
+
+            embed = discord.Embed(
+                description="╭═════════ .✧♛✧. ═════════╮\n|   ꧁༒♛- "
+                + stats[0]["pj"]
+                + " ["
+                + str(stats[0]["pts"])
+                + "pts] -♛༒꧂\n|\n|   ꧁༒☬ - "
+                + stats[1]["pj"]
+                + " ["
+                + str(stats[1]["pts"])
+                + "pts] - ☬༒꧂\n|\n|   ꧁༒• - "
+                + stats[2]["pj"]
+                + " ["
+                + str(stats[2]["pts"])
+                + "pts] - •༒꧂\n|\n|      \t—(••÷ "
+                + stats[3]["pj"]
+                + " ["
+                + str(stats[3]["pts"])
+                + "pts] ÷••)—\n|      —(••÷ "
+                + stats[4]["pj"]
+                + " ["
+                + str(stats[4]["pts"])
+                + "pts] ÷••)—\n|      —(••÷ "
+                + stats[5]["pj"]
+                + " ["
+                + str(stats[5]["pts"])
+                + "pts] ÷••)—\n|      —(••÷ "
+                + stats[6]["pj"]
+                + " ["
+                + str(stats[6]["pts"])
+                + "pts] ÷••)—\n╰═══ .Total del evento: ["
+                + str(total_pts)
+                + " pts] . ═══╯",
+                colour=color,
+            )
+
+            embed.set_author(name="Ranking Evento")
+
+            embed.add_field(
+                name="Pj que peores dados:",
+                value=(
+                    min_luck[0] + " con una increible media de: " + str(min_luck[1])
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="Pj con mejores dados:",
+                value=(
+                    max_luck[0] + " con una increible media de: " + str(max_luck[1])
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="Pj que más días salió",
+                value=(
+                    max_salidas[0]
+                    + " con un total de "
+                    + str(max_salidas[1] * 5)
+                    + " dias fuera"
+                ),
+                inline=False,
+            )
+
+            embed.set_image(
+                url="https://cdn.discordapp.com/attachments/1181152950945599590/1202268680654684161/450_1000.jpg?ex=65ccd6f6&is=65ba61f6&hm=0b10ceacdf60914bf533296730cd4daa20ac38de0820c7395efa377325c9f91e&"
+            )
+
+            await interaction.response.send_message(embed=embed)
+        else:
+            color = discord.Color.dark_gold()
+            msg = "Eres un listillo tu no?\n ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⠏⠁⠀⠙⢿⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣿⠀⠀⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡏⠀⠀⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀⠀⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡇⠀⠀⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡇⠀⠀⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡇⠀⠀⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣶⠶⣶⣿⠀⠀⠀⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⠏⠀⠀⠈⣿⠀⠀⠀⠀⠀⢸⣷⣦⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⡿⠀⠀⠀⠀⣿⠀⠀⠀⠀⠀⢸⠇⠀⠀⠉⢷⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡾⢿⠇⠀⠀⠀⠀⣿⠀⠀⠀⠀⠀⢸⡇⠀⠀⠀⠸⡷⠤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⡾⠋⠀⣾⠀⠀⠀⠀⠀⣿⠀⠀⠀⠀⠀⢸⡇⠀⠀⠀⠀⣧⠀⠀⠹⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⠏⠀⠀⠀⣿⠀⠀⠀⠀⠀⠉⠀⠀⠀⠀⠀⠈⠁⠀⠀⠀⠀⢹⡄⠀⠀⢹⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⡏⠀⠀⠀⠀⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠇⠀⠀⠀⢻⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⡀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠹⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣼⠟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣧⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⡿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡏⠀⠀⠀⠀⠀⠀⠀⠀"
+
+            embed = discord.Embed(description=msg, colour=color)
+
+            embed.set_author(name="Listillo")
+
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 bot.tree.clear_commands(guild=None)
 bot.tree.add_command(evento())
 
 
-""" bot.run(TOKEN) """
+bot.run(TOKEN)
