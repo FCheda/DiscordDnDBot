@@ -8,6 +8,8 @@ import validators
 
 def template_personaje(entryData, message, name: str):
     info = entryData.get_character(name)
+    if info is None:
+        return f"No se ha encontrado ningun personaje con el nombre {name}"
 
     xps = [
         300,

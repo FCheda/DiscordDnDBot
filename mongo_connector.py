@@ -4,6 +4,7 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 import pprint
 import random
+import validators
 
 load_dotenv()
 mongo_user = os.getenv("MONGO_USER")
@@ -61,6 +62,17 @@ class mongo_connector:
                 self.client[dbname][character_collection].update_one(
                     {"Personaje": character_name}, newvalues
                 )
+
+    def set_character_url(self, character, player, url):
+        char = self.get_character(character)
+        if player != char["Dueño"]:
+            return f"{player} no tiene ningun personaje llamado {character}"
+
+        if url is not None and validators.url(url):
+            self.update_character(character, {"image_url": url})
+            return "Success"
+        elif url is not None:
+            print("!!!!! url badly formed")
 
     def update_player(self, player_name=None, dict=None):
         print(f"updating player {player_name}")

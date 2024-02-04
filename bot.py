@@ -184,6 +184,7 @@ async def on_message(message):
         "!get classes ",
         "!get races ",
         "!navidad ",
+        "!update_characer_url ",
     ]
 
     if commands[0] in str(message.content):
@@ -194,7 +195,11 @@ async def on_message(message):
         )
         # response = connector.get_character(message.content[len(commands[0]) :])
         # embed = discord.Embed(title="Title", description="Desc", color=0x00FF00)
-        await message.channel.send(embed=embed)
+        if type(embed) == str:
+            await message.channel.send(str(embed))
+            embed = None
+        if embed is not None:
+            await message.channel.send(embed=embed)
         # await interationresponse.send_message(embed=persTemp)
     if commands[1] in str(message.content):
         response = connector.get_player(message.content[len(commands[1]) :])
@@ -233,6 +238,12 @@ async def on_message(message):
     if commands[9] in str(message.content):
         response = connector.navidad(
             message.content[len(commands[9]) :], message.author.name
+        )
+        await message.channel.send(str(response))
+    if commands[10] in str(message.content):
+        split = message.content.split(" ")
+        response = connector.set_character_url(
+            " ".join(split[1:-1]), str(message.author.name), split[-1]
         )
         await message.channel.send(str(response))
 
