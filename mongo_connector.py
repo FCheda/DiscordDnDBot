@@ -7,6 +7,7 @@ import random
 import validators
 from bson.objectid import ObjectId
 import copy
+import datetime
 
 load_dotenv()
 mongo_user = os.getenv("MONGO_USER")
@@ -21,6 +22,29 @@ class_collection = "test_classes"
 race_collection = "test_races"
 market_collection = "test_mercado"
 magic_items_collection = "test_magic_item_tables"
+
+
+XP_Dict = {
+    2: 300,
+    3: 900,
+    4: 2700,
+    5: 6500,
+    6: 14000,
+    7: 23000,
+    8: 34000,
+    9: 48000,
+    10: 64000,
+    11: 85000,
+    12: 100000,
+    13: 120000,
+    14: 140000,
+    15: 165000,
+    16: 195000,
+    17: 225000,
+    18: 265000,
+    19: 305000,
+    20: 355000,
+}
 
 
 class mongo_connector:
@@ -222,8 +246,33 @@ class mongo_connector:
         return False
 
     def create_player(self, player_id: str):
-        # TODO
-        pass
+        new_player_dict = {
+            "Nombre": player_id,
+            "Fecha de creacion": {"$date": str(datetime.datetime.today())},
+            "Rango GM": 0,
+            "Max Pjs": 1,
+            "Puntos GM": 0,
+            "Partidas GM": 0,
+            "Puntos Trabajo": 0,
+            "Puntos Gastados": 0,
+            "Dias GM": 0,
+            "Dias Trabajo": 0,
+            "Dias Gastados": 0,
+            "Dias Reward (GM)": 0,
+            "Puntos Reward (GM)": 0,
+            "Evento Reward (GM)": 0,
+            "Unlock GM": 0,
+            "Unlock Trabajo": 0,
+            "Unlock Totales": 0,
+            "Tomos": 0,
+            "Midas": 0,
+            "Current Pjs": 0,
+        }
+        if self.get_player(player_id) is None:
+            self.update_player(player_id, new_player_dict)
+            return f"Created {player_id} data, wellcome!"
+        else:
+            return f"Error: {player_id} already exists!"
 
     def create_character(
         self,
@@ -355,6 +404,111 @@ class mongo_connector:
         )
 
         return (result, result2)  # TODO retornar None a la interfaz si funciono.
+
+    def level_up(
+        self,
+        discord_channel,
+        user_id,  # id discord
+        name,
+        class_name=None,
+        subclass_name=None,
+        life_method_roll=None,
+    ):
+        # Ej: level_up("registros","arctic8411","Elizabeth")
+        valid_channels = ["registros", "bot-test"]
+        if discord_channel not in valid_channels:
+            return "channel is not valid"
+        character = self.get_character(name)
+        player = self.get_player(user_id)
+        if player is None:
+            return "Player is none"
+        if character is None:
+            return "Character is none"
+        if character.get("Dueño") != user_id:
+            return f"El personaje {name} no pertenece a {user_id}"
+        # check level
+        if XP_Dict[int(character.get("Level")) + 1] > int(character.get("XP")):
+            return f"{name} no tiene suficiente XP para subir de nivel: tiene {int(character.get('XP'))} y necesita {XP_Dict[int(character.get('Level')) + 1]}"
+        # check class
+        replace_class = None
+        character_class = self.get_class(id=list(character.get("Classes").keys())[0])
+        number_of_lvls_to_mod = 1
+        if class_name is not None:
+            for class_id, levels in character.get("Classes").items():
+                this_class = self.get_class(id=class_id)
+                if class_name == this_class.get("class"):
+                    # we already have the class
+                    if levels + 1 == this_class.get("subclass_level"):
+                        # set subclass
+                        if subclass_name is not None:
+                            character_class = self.get_class(class_name, subclass_name)
+                            replace_class = this_class
+                            if this_class.get("hp_mod") != character_class.get(
+                                "hp_mod"
+                            ):
+                                number_of_lvls_to_mod = this_class.get("subclass_level")
+                            break
+                        else:
+                            return f"Yo need to specify subclass for {class_name} at class lvl {levels+1}"
+                    else:
+                        character_class = this_class
+                        break
+        # get lif
+        life_increase = 0
+        if life_method_roll != None:
+            life_increase = (
+                random.randint(1, character_class["hp_dice"])
+                + character_class["hp_mod"] * number_of_lvls_to_mod
+                + (character["CON"] - 10) // 2 * 1
+                + self.get_race(id=character.get("Race")).get("hp_mod")
+            )
+        else:
+            life_increase = (
+                character_class["hp_dice"] // 2
+                + 1
+                + character_class["hp_mod"] * number_of_lvls_to_mod
+                + (character["CON"] - 10) // 2 * 1
+                + self.get_race(id=character.get("Race")).get("hp_mod")
+            )
+
+        # replace class, and set new level
+        add_feat = False
+        level = None
+        if replace_class != None:
+            level = character["Classes"][str(replace_class.get("_id"))] + 1
+            character["Classes"].pop(str(character_class.get("_id")), None)
+            character["Classes"][str(character_class.get("_id"))] = level
+        else:
+            level = character["Classes"][str(character_class.get("_id"))] + 1
+            character["Classes"][str(character_class.get("_id"))] = level
+        if level in [4, 8, 12, 16, 19] or (
+            class_name == "Fighter" and level in [6, 12, 14]
+        ):
+            add_feat = True
+
+        character["HP"] = character["HP"] + life_increase
+        character["Level"] = character["Level"] + 1
+        if add_feat:
+            character["unused_feat"] = character.get("unused_feat") + 1
+        else:
+            character["unused_feat"] = character.get("unused_feat", 0)
+
+        update_dict = {
+            "HP": character["HP"],
+            "Level": character["Level"],
+            "unused_feat": character["unused_feat"],
+            "Classes": character["Classes"],
+        }
+        self.update_character(name, update_dict)
+        return "Success"
+
+    def set_subclass():
+        # TODO
+        pass
+
+    def set_feat():
+        # TODO
+        pass
 
     ##logs
     def get_player_log_rewards(self, base_rewards):

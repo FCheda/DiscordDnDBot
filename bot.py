@@ -187,6 +187,7 @@ async def on_message(message):
         "!update_characer_url ",
         "!get log ",
         "!undo log ",
+        "!registro jugador",
     ]
 
     if commands[0] in str(message.content):
@@ -259,6 +260,9 @@ async def on_message(message):
             message.channel.name,
             message.content[len(commands[12]) :],
         )
+        await message.channel.send(str(response))
+    if commands[13] in str(message.content):
+        response = connector.create_player(str(message.author.name))
         await message.channel.send(str(response))
 
     # if message.content == "Que piensas de Fedor?":
