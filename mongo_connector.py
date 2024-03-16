@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 import pprint
 import random
 import validators
+from bson.objectid import ObjectId
+import copy
 
 load_dotenv()
 mongo_user = os.getenv("MONGO_USER")
@@ -89,9 +91,16 @@ class mongo_connector:
                 )
         return result
 
+    def get_log(self, id: str):
+        return self.client[dbname][logs_collection].find_one(ObjectId(id))
+
+    def del_log(self, id: str):
+        return self.client[dbname][logs_collection].find_one(ObjectId(id))
+
     def insert_log(self, dict=None):
         if dict is not None:
-            self.client[dbname][logs_collection].insert(dict)
+            id = self.client[dbname][logs_collection].insert(dict)
+            return id
         else:
             return None
 
@@ -102,6 +111,7 @@ class mongo_connector:
             return None
 
     def get_classes(self, filter: dict = None, format: str = None):
+
         cursor = self.client[dbname][class_collection].find(filter)
         ret = cursor
 
@@ -125,7 +135,11 @@ class mongo_connector:
             ret = [item["subrace_name"] for item in list(ret)]
         return ret
 
-    def get_class(self, class_name: str = None, subclass_name: str = None):
+    def get_class(
+        self, class_name: str = None, subclass_name: str = None, id: str = None
+    ):
+        if id is not None:
+            return self.client[dbname][class_collection].find_one(ObjectId(id))
         if class_name is not None and subclass_name is not None:
             return self.client[dbname][class_collection].find_one(
                 {"class": class_name, "subclass_name": subclass_name}
@@ -135,7 +149,9 @@ class mongo_connector:
                 {"class": class_name, "subclass_name": "None"}
             )
 
-    def get_race(self, race_name: str = None, subrace_name: str = None):
+    def get_race(self, race_name: str = None, subrace_name: str = None, id: str = None):
+        if id is not None:
+            return self.client[dbname][race_collection].find_one(ObjectId(id))
         print(f"race is {race_name} , subrace is {subrace_name}")
         if race_name is not None and subrace_name is not None:
             return self.client[dbname][race_collection].find_one(
@@ -206,6 +222,7 @@ class mongo_connector:
         return False
 
     def create_player(self, player_id: str):
+        # TODO
         pass
 
     def create_character(
@@ -375,11 +392,24 @@ class mongo_connector:
         }
         return dict
 
-    def get_gm_update_dict(self, player, rewards):
+    def get_gm_update_dict(self, player, rewards, reverse=False):
         foo = self.get_player(player)
+        multiplier = 1
+        if reverse:
+            multiplier = -1
         for key in rewards.keys():
-            rewards[key] = rewards[key] + foo.get(key, 0)
+            rewards[key] = rewards[key] + multiplier * foo.get(key, 0)
         return rewards
+
+    def store_log_in_db(self, player_rewards, gm, gm_rewards):
+        log_checkpoint = {
+            "gm": gm,
+            "player_rewards": player_rewards,
+            "gm_rewards": gm_rewards,
+        }
+
+        id = self.insert_log(log_checkpoint)
+        return id
 
     def process_log(self, channel, gm, log):
         """
@@ -415,6 +445,7 @@ class mongo_connector:
 
         for player in base_players:
             log_dict[player] = self.get_player_log_rewards(base_rewards)
+        # print(log_dict[player])
         for index, line in enumerate(lines[3:]):
             if line[: len("Especial:")] == "Especial:":
                 tokens = [x.strip() for x in line[len("Especial:") :].split(",")]
@@ -427,7 +458,8 @@ class mongo_connector:
                         return message
                     else:
                         log_dict[player] = self.get_player_log_rewards(special_rewards)
-
+        print("initial log dict line 450")
+        store_log_dict = copy.deepcopy(log_dict)  # to store a cold copy
         for character, rewards in log_dict.items():
             update_rewards = self.get_character_update_dict(character, rewards)
             self.update_character(character, update_rewards)
@@ -435,13 +467,38 @@ class mongo_connector:
         gm_rewards = self.get_gm_update_dict(gm, self.get_gm_rewards(base_rewards))
         self.update_player(gm, gm_rewards)
 
-        pprint.pprint(log_dict)
-        pprint.pprint(gm_rewards)
-        message = "log succesfull"
+        log_checkpoint = self.store_log_in_db(
+            store_log_dict, gm, self.get_gm_rewards(base_rewards)
+        )
+
+        message = "log succesfull \n" + str(log_checkpoint)
 
         # TODO, add insert the full log in a new table
 
         return message
+
+    def get_log_by_id(self, channel, log_id):
+        if channel in ["bot-test", "oficina"]:
+            return self.get_log(log_id)
+        else:
+            return "invalid channel"
+
+    def undo_log_by_id(self, channel, log_id):
+        if channel in ["bot-test", "oficina"]:
+            log = self.get_log(log_id)
+            gm_rewards = self.get_gm_update_dict(
+                log["gm"], log["gm_rewards"], reverse=True
+            )
+            self.update_player(log["gm"], gm_rewards)
+            for character, rewards in log["player_rewards"].items():
+                update_rewards = self.get_character_update_dict(
+                    character, rewards, reverse=True
+                )
+                self.update_character(character, update_rewards)
+            self.del_log(log_id)
+            return f"log {log_id} undone"
+        else:
+            return "invalid channel"
 
     # buy items
     def get_item(self, item_name):

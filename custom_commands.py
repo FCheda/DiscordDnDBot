@@ -6,8 +6,8 @@ import os
 import validators
 
 
-def template_personaje(entryData, message, name: str):
-    info = entryData.get_character(name)
+def template_personaje(connector, message, name: str):
+    info = connector.get_character(name)
     if info is None:
         return f"No se ha encontrado ningun personaje con el nombre {name}"
 
@@ -51,7 +51,13 @@ def template_personaje(entryData, message, name: str):
     template_pj.add_field(name="Inteligencia:", value=info["INT"], inline=True)
     template_pj.add_field(name="Sabiduría:", value=info["WIS"], inline=True)
     template_pj.add_field(name="Carisma:", value=info["CHA"], inline=True)
-    template_pj.add_field(name="Raza", value=info["Race"], inline=True)
+    race = connector.get_race(id=info["Race"])
+    race_str = (
+        race["race"]
+        if "subrace" not in race.keys()
+        else f"{race['race']}: {race['subrace']}"
+    )
+    template_pj.add_field(name="Raza", value=race_str, inline=True)
     template_pj.add_field(name="HP", value=info["HP"], inline=True)
     template_pj.add_field(
         name="XP",
@@ -59,11 +65,34 @@ def template_personaje(entryData, message, name: str):
         + (" / " + str(xp_req) if info["Level"] <= 20 else ""),  # 150/300
         inline=True,
     )
+
+    classes = info["Classes"]
+    cl_strs = []
+    for cl_key in classes.keys():
+        cl = connector.get_class(id=cl_key)
+        if "subclass_name" in cl:
+            cl_strs.append(f"{cl['class']}, {cl['subclass_name']}: {classes[cl_key]}")
+        else:
+            cl_strs.append(f"{cl['class']}: {classes[cl_key]}")
+
     template_pj.add_field(
         name="Clases:",
-        value="\n".join(["- " + x for x in (info["Clases"].split(","))]),
+        value="\n".join(cl_strs),
         inline=False,
     )
+
+    template_pj.add_field(
+        name="Feats :",
+        value="\n".join(info["Feats"]),
+        inline=False,
+    )
+
+    template_pj.add_field(
+        name="Rewards:",
+        value="\n".join(info["Rewards"]),
+        inline=False,
+    )
+
     template_pj.add_field(
         name="Money",
         value=str(int(info["GP"]))
