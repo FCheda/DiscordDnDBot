@@ -185,6 +185,9 @@ async def on_message(message):
         "!get races ",
         "!navidad ",
         "!update_characer_url ",
+        "!get log ",
+        "!undo log ",
+        "!registro jugador",
     ]
 
     if commands[0] in str(message.content):
@@ -245,6 +248,21 @@ async def on_message(message):
         response = connector.set_character_url(
             " ".join(split[1:-1]), str(message.author.name), split[-1]
         )
+        await message.channel.send(str(response))
+    if commands[11] in str(message.content):
+        response = connector.get_log_by_id(
+            message.channel.name,
+            message.content[len(commands[11]) :],
+        )
+        await message.channel.send(str(response))
+    if commands[12] in str(message.content):
+        response = connector.undo_log_by_id(
+            message.channel.name,
+            message.content[len(commands[12]) :],
+        )
+        await message.channel.send(str(response))
+    if commands[13] in str(message.content):
+        response = connector.create_player(str(message.author.name))
         await message.channel.send(str(response))
 
     # if message.content == "Que piensas de Fedor?":
