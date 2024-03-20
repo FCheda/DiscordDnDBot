@@ -21,7 +21,8 @@ logs_collection = "test_log"
 class_collection = "test_classes"
 race_collection = "test_races"
 market_collection = "test_mercado"
-magic_items_collection = "test_magic_item_tables"
+magic_items_collection = "test_magic_item_collection"
+magic_items_tables = "test_magic_item_tables"
 
 
 XP_Dict = {
@@ -720,6 +721,106 @@ class mongo_connector:
         result = self.update_character(character.get("Personaje", None), update_dict)
         message = "Success"
         return message
+
+    # ROLL ITEM TABLES
+
+    def get_magic_table_definition(self, table_name):
+        return self.client[dbname][magic_items_tables].find_one({"table": table_name})
+
+    def get_magic_table_items(self, table_name, format):
+        cursor = self.client[dbname][magic_items_collection].find({"table": table_name})
+        if format == "lst":
+            return list(cursor)
+        return cursor
+
+    def get_magic_table_item(self, item):
+        return self.client[dbname][magic_items_collection].find_one({"item": item})
+
+    def roll_magic_item_table(self, discord_channel, user_id, name, table_name):
+        valid_channels = ["registros", "bot-test"]
+        if discord_channel not in valid_channels:
+            return "channel is not valid"
+        character = self.get_character(name)
+        player = self.get_player(user_id)
+        if player is None:
+            return "Player is none"
+        if character is None:
+            return "Character is none"
+        if character.get("Dueño") != user_id:
+            return f"El personaje {name} no pertenece a {user_id}"
+
+        table = self.get_magic_table_definition(table_name)
+        if table is None:
+            return f"Table {table_name} not found"
+        table_cost = table.get("cost")
+        table_items = self.get_magic_table_items(table_name, format="lst")
+
+        if character["Fortuna"] < table_cost:
+            return f"{character['Personaje']} no tiene suficiente fortuna"
+
+        roll = random.randint(0, len(table_items) - 1)
+
+        self.update_character(
+            character["Personaje"],
+            self.get_character_update_dict(
+                character["Personaje"], {"Fortuna": table_cost}, reverse=True
+            ),
+        )
+
+        return f"{character['Personaje']} ha tirado en la tabla {table_name}, recibiendo   ---->  {table_items[roll]['item']}"
+
+    def roll_magic_custom_table(self, discord_channel, user_id, name, item_list):
+        coste_prestigio = 5
+        valid_channels = ["registros", "bot-test"]
+        if discord_channel not in valid_channels:
+            return "channel is not valid"
+        character = self.get_character(name)
+        player = self.get_player(user_id)
+        if player is None:
+            return "Player is none"
+        if character is None:
+            return "Character is none"
+        if character.get("Dueño") != user_id:
+            return f"El personaje {name} no pertenece a {user_id}"
+
+        # get items and fortune cost
+        print(item_list)
+
+        tables = []
+        items = []
+        fortune_costs = []
+        if len(item_list) != len(set(item_list)):
+            return "No se puede incluir varias veces el mismo objeto"
+
+        for item in item_list:
+            foo = self.get_magic_table_item(item)
+            if foo is None:
+                return f"{item} no existe"
+            items.append(foo["item"])
+            tables.append(foo["table"])
+            fortune_costs.append(
+                self.get_magic_table_definition(foo["table"]).get("cost", 0)
+            )
+
+        if character["Prestigio"] < coste_prestigio:
+            return f"{character['Personaje']} no tiene suficiente prestigio"
+        if character["Fortuna"] < max(fortune_costs):
+            return f"{character['Personaje']} no tiene suficiente fortuna"
+        # roll
+        roll = random.randint(0, len(items) - 1)
+        # update character
+        self.update_character(
+            character["Personaje"],
+            self.get_character_update_dict(
+                character["Personaje"],
+                {"Fortuna": max(fortune_costs), "Prestigio": coste_prestigio},
+                reverse=True,
+            ),
+        )
+        # write message
+        result = f"{name} ha tirado en una tabla personalizada pagando {coste_prestigio} Prestigio y {max(fortune_costs)} Fortuna, obteniendo -> {items[roll]}"
+
+        return result
 
 
 if __name__ == "__main__":
