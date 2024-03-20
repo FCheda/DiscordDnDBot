@@ -188,6 +188,8 @@ async def on_message(message):
         "!get log ",
         "!undo log ",
         "!registro jugador",
+        "!tabla tirar ",
+        "!tabla custom ",
     ]
 
     if commands[0] in str(message.content):
@@ -264,7 +266,25 @@ async def on_message(message):
     if commands[13] in str(message.content):
         response = connector.create_player(str(message.author.name))
         await message.channel.send(str(response))
-
+    if commands[14] in str(message.content):
+        response = connector.roll_magic_item_table(
+            discord_channel=message.channel.name,
+            user_id=str(message.author.name),
+            name=message.content[len(commands[14]) : -2],
+            table_name=message.content[-1:],
+        )
+        await message.channel.send(str(response))
+    if commands[15] in str(message.content):
+        name, item1, item2, item3, item4, item5 = tuple(
+            str.split(message.content[len(commands[15]) :], ",")
+        )
+        response = connector.roll_magic_custom_table(
+            discord_channel=message.channel.name,
+            user_id=str(message.author.name),
+            name=name,
+            item_list=[item1, item2, item3, item4, item5],
+        )
+        await message.channel.send(str(response))
     # if message.content == "Que piensas de Fedor?":
     #    response = "Ufff esta buenorro el tio pero lo tiene pillado ems :("
     #    await message.channel.send(response)
