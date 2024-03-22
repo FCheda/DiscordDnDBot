@@ -14,6 +14,20 @@ mongo_user = os.getenv("MONGO_USER")
 mongo_password = os.getenv("MONGO_PASSWORD")
 mongo_server = os.getenv("MONGO_SERVER")
 
+#
+# PRO
+dbname = "d&d_server_main_db"
+character_collection = "characters"
+player_collection = "players"
+logs_collection = "log"
+class_collection = "classes"
+race_collection = "races"
+market_collection = "mercado"
+magic_items_collection = "magic_item_collection"
+magic_items_tables = "magic_item_tables "
+
+"""
+# TEST
 dbname = "d&d_server_main_db"
 character_collection = "test"
 player_collection = "test_player"
@@ -23,7 +37,7 @@ race_collection = "test_races"
 market_collection = "test_mercado"
 magic_items_collection = "test_magic_item_collection"
 magic_items_tables = "test_magic_item_tables"
-
+"""
 
 XP_Dict = {
     2: 300,
@@ -175,10 +189,10 @@ class mongo_connector:
             )
 
     def get_race(self, race_name: str = None, subrace_name: str = None, id: str = None):
+        print(f"race is {race_name} , subrace is {subrace_name}")
         if id is not None:
             return self.client[dbname][race_collection].find_one(ObjectId(id))
-        print(f"race is {race_name} , subrace is {subrace_name}")
-        if race_name is not None and subrace_name is not None:
+        elif race_name is not None and subrace_name is not None:
             return self.client[dbname][race_collection].find_one(
                 {"race": race_name, "subrace_name": subrace_name}
             )
@@ -295,7 +309,7 @@ class mongo_connector:
         asi3=None,
     ):
         """example = connector.create_character("registros","test","pika2","Dragonborn","Metalic","Artificer","Alchemist",15,15,15,8,8,8,"str","dex")"""
-        valid_channels = ["registros", "bot-test"]
+        valid_channels = ["✒-registros", "bot-test"]
         if discord_channel not in valid_channels:
             return "channel is not valid"
 
@@ -304,14 +318,14 @@ class mongo_connector:
             print(f"selected raze is {db_race}")
         else:
             print("db_race is None")
-            return None
+            return "db_race is None"
 
         db_class = self.get_class(class_name, subclass_name)
         if db_class is not None:
             print(f"selected class is {db_class}")
         else:
             print("db_class is None")
-            return None
+            return "db_class is None"
 
         player = self.get_player(user_id)
         if player is None:
@@ -338,7 +352,7 @@ class mongo_connector:
             )
             is False
         ):
-            return (None, "Asis are invalid")
+            return "Asis are invalid"
         base_hp = db_class["hp_dice"] + db_class["hp_mod"] + db_race["hp_mod"]
         _free_feats = 0
         print(f"free feat is {db_race.get('free_feat',None)}")
@@ -377,15 +391,23 @@ class mongo_connector:
             "Personaje": name,
             "Dueño": user_id,
             "XP": 0,
-            "Fortuna": 0,
-            "Prestigio": 0,
+            "Fortuna": 0.00,
+            "Prestigio": 0.00,
             "Evento": 0,
             "Chikievento": 0,
             "Descanso": 0,
-            "GP": 50,
+            "GP": 50.00,
             "Level": 1,
-            "Clases": ({"class": class_name, "subclass": subclass_name, "lvl": 1}),
-            "Race": {"race": race_name, "subrace": subrace_name},
+            "Classes": {
+                str(
+                    self.get_class(
+                        class_name=class_name, subclass_name=subclass_name
+                    ).get("_id")
+                ): 1
+            },
+            "Race": str(
+                self.get_race(race_name=race_name, subrace_name=subrace_name).get("_id")
+            ),
             "HP": base_hp + (_con // 2 - 5),
             "FUE": _str,
             "DEX": _dex,
@@ -395,8 +417,8 @@ class mongo_connector:
             "CHA": _cha,
             "FEATS": "",
             "Unused Feats": _free_feats,
-            "Stats de master": False,
-            "Feat de Mastter": False,
+            "Feats": {},
+            "Rewards": [],
         }
 
         result = self.insert_character(data)
@@ -416,7 +438,7 @@ class mongo_connector:
         life_method_roll=None,
     ):
         # Ej: level_up("registros","arctic8411","Elizabeth")
-        valid_channels = ["registros", "bot-test"]
+        valid_channels = ["✒-registros", "bot-test"]
         if discord_channel not in valid_channels:
             return "channel is not valid"
         character = self.get_character(name)
@@ -454,6 +476,10 @@ class mongo_connector:
                     else:
                         character_class = this_class
                         break
+        else:
+            levels = list(character.get("Classes").values())[0]
+            if character_class.get("subclass_level") == levels + 1:
+                return f"Yo need to specify subclass for {class_name} at class lvl {levels+1}"
         # get lif
         life_increase = 0
         if life_method_roll != None:
@@ -477,7 +503,7 @@ class mongo_connector:
         level = None
         if replace_class != None:
             level = character["Classes"][str(replace_class.get("_id"))] + 1
-            character["Classes"].pop(str(character_class.get("_id")), None)
+            character["Classes"].pop(str(replace_class.get("_id")), None)
             character["Classes"][str(character_class.get("_id"))] = level
         else:
             level = character["Classes"][str(character_class.get("_id"))] + 1
@@ -571,7 +597,7 @@ class mongo_connector:
 
         example: process_log("logs","Kana",log)
         """
-        valid_channels = ["log", "bot_log_tests"]
+        valid_channels = ["📒-logs", "bot_log_tests"]
         if channel not in valid_channels:
             message = "Log has not been processed, wrong channel"
             return message

@@ -4,9 +4,12 @@ import mongo_connector
 import datetime
 import os
 import validators
+from decimal import Decimal
 
 
-def template_personaje(connector, message, name: str):
+def template_personaje(connector, channel, name: str):
+    if channel not in ["bot-test", "consultas"]:
+        return "Invalid Channel"
     info = connector.get_character(name)
     if info is None:
         return f"No se ha encontrado ningun personaje con el nombre {name}"
@@ -54,8 +57,8 @@ def template_personaje(connector, message, name: str):
     race = connector.get_race(id=info["Race"])
     race_str = (
         race["race"]
-        if "subrace" not in race.keys()
-        else f"{race['race']}: {race['subrace']}"
+        if "subrace_name" not in race.keys()
+        else f"{race['race']}: {race['subrace_name']}"
     )
     template_pj.add_field(name="Raza", value=race_str, inline=True)
     template_pj.add_field(name="HP", value=info["HP"], inline=True)
@@ -97,9 +100,9 @@ def template_personaje(connector, message, name: str):
         name="Money",
         value=str(int(info["GP"]))
         + " gp "
-        + str(info["GP"])[-2]
+        + str(int(info["GP"] * 10))[-1]
         + " sp "
-        + str(info["GP"])[-1]
+        + str(int(info["GP"] * 100))[-1]
         + " cp ",
         inline=False,
     )
@@ -122,3 +125,21 @@ def template_personaje(connector, message, name: str):
     )"""
 
     return template_pj
+
+
+def template_generic(error: bool, respuesta: str, interation: discord.Interaction):
+    if error:
+        template = discord.Embed(description=respuesta, colour=0xFF0080)
+
+        template.set_author(
+            name=interation.user.display_name, icon_url=interation.user.display_icon
+        )
+
+    else:
+        template = discord.Embed(description=respuesta, colour=0x008080)
+
+        template.set_author(
+            name=interation.user.display_name, icon_url=interation.user.display_icon
+        )
+
+    return template

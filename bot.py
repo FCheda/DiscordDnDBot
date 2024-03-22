@@ -7,6 +7,7 @@ from discord.ext import commands
 from discord import app_commands
 import random
 from dotenv import load_dotenv  #
+from typing import Optional
 import mongo_connector
 
 import custom_commands
@@ -28,7 +29,7 @@ class CustomClient(discord.Client):
     async def on_ready(self):
         print(f"{self.user} has connected to Discord!")
 """
-
+"""
 # bot command tests
 bot = commands.Bot(command_prefix="/", intents=intents)
 
@@ -80,9 +81,9 @@ async def on_ready():
     except Exception as e:
         print(e)
 
-
+"""
 # bot general tests
-client = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix="/", intents=intents)
 
 
 bot_channels = [
@@ -91,22 +92,31 @@ bot_channels = [
     "recompensas",
     "bot_log_tests",
     "bot_compras_tests",
+    "consultas",
+    "✒-registros",
+    "📒-logs",
 ]
 
 
-@client.event
+@bot.event
 async def on_ready():
-    guild = discord.utils.get(client.guilds, name=GUILD)
+    guild = discord.utils.get(bot.guilds, name=GUILD)
     print(
-        f"{client.user} is connected to the following guild:\n"
+        f"{bot.user} is connected to the following guild:\n"
         f"{guild.name}(id: {guild.id})"
     )
+    # sync commands
+    try:
+        synced = await bot.tree.sync()
+        print(f"Synced {len(synced)} command(s)")
+    except Exception as e:
+        print(e)
 
     # members = "\n - ".join([member.name for member in guild.members])
     # print(f"Guild Members:\n - {members}")
 
 
-@client.event
+@bot.event
 async def on_message(message):
     print("got message")
     print(f"Author: {message.author.name}")
@@ -119,7 +129,7 @@ async def on_message(message):
         print("invalid channel")
         return
 
-    if message.author == client.user:
+    if message.author == bot.user:
         print("bad author")
         return
 
@@ -184,7 +194,7 @@ async def on_message(message):
         "!get classes ",
         "!get races ",
         "!navidad ",
-        "!update_characer_url ",
+        "!update_character_url ",
         "!get log ",
         "!undo log ",
         "!registro jugador",
@@ -196,7 +206,7 @@ async def on_message(message):
         # response = "character query: " + message.content[len(commands[0]) :]
         # embed = custom_commands.personajeinfo(connector, None, None, message.content[len(commands[0]) :])
         embed = custom_commands.template_personaje(
-            connector, message, message.content[len(commands[0]) :]
+            connector, message.channel.name, message.content[len(commands[0]) :]
         )
         # response = connector.get_character(message.content[len(commands[0]) :])
         # embed = discord.Embed(title="Title", description="Desc", color=0x00FF00)
@@ -290,18 +300,238 @@ async def on_message(message):
     #    await message.channel.send(response)
 
 
-# client.run(TOKEN)
+# bot tree commands!:
+@app_commands.guild_only()
+class personaje(app_commands.Group):
+
+    # Declaración del comando para almacenaje en el Bot.Tree
+    @app_commands.command(
+        name="nuevo", description="Permite crear un personaje nuevo a un usuario"
+    )
+    # Descripción de los parametros que pide el comando
+    @app_commands.describe(
+        name="Nombre del nuevo personaje",
+        race="Raza del nuevo personaje",
+        subrace="Sub-raza del personaje en caso de tener",
+        clase="Clase del nuevo personaje",
+        subclase="Subclase del nuevo personaje en caso de tener una",
+        fue="Fuerza del nuevo personaje, sin modificadores de raza",
+        dex="Dextreza del nuevo personaje, sin modificadores de raza",
+        con="Constitucion del nuevo personaje, sin modificadores de raza",
+        inte="Inteligencia del nuevo personaje, sin modificadores de raza",
+        wis="Sabiduría del nuevo personaje, sin modificadores de raza",
+        cha="Carisma del nuevo personaje, sin modificadores de raza",
+        asi1="Estadistica donde se aplica el modificador secundario de la raza",
+        asi2="Estadistica donde se aplica el modificador secundario de la raza",
+        asi3="Estadistica donde se aplica el modificador secundario de la raza",
+    )
+    # Decorator basado en cambiar el display name de los parametros
+    @app_commands.rename(
+        name="nombre",
+        race="raza",
+        subrace="sub-raza",
+        clase="clase",
+        subclase="sub-clase",
+        fue="fuerza",
+        dex="dextreza",
+        con="constitución",
+        inte="inteligencia",
+        wis="sabiduría",
+        cha="carisma",
+        asi1="modificador_principal",
+        asi2="modificador_secundario",
+        asi3="modificador_terciario",
+    )
+    # Declaracion de la funcion que handlea el comando.
+    async def nuevo(
+        self,
+        interaction: discord.Interaction,
+        name: str,
+        race: str,
+        subrace: Optional[str],
+        clase: str,
+        subclase: Optional[str],
+        fue: int,
+        dex: int,
+        con: int,
+        inte: int,
+        wis: int,
+        cha: int,
+        asi1: str,
+        asi2: str,
+        asi3: Optional[str],
+    ):
+        result = connector.create_character(
+            interaction.channel.name,
+            str(interaction.user.name),
+            name,
+            race,
+            subrace,
+            clase,
+            subclase,
+            fue,
+            dex,
+            con,
+            inte,
+            wis,
+            cha,
+            asi1,
+            asi2,
+            asi3,
+        )
+
+        message = None
+        embed = None
+        if result is None:
+            message = "None"
+        elif type(result) == str:
+            message = result
+        else:
+            embed = custom_commands.template_generic(True, result[0], interaction)
+
+        await interaction.response.send_message(message, embed=embed)
+
+    # Declaracion de las funciones de autocompletar
+    @nuevo.autocomplete("race")
+    async def auto_race(
+        self, interaction: discord.Interaction, current: str
+    ) -> typing.List[app_commands.Choice[str]]:
+        data = []
+        for races in connector.get_races(format="race"):
+            if current.lower() in races.lower():
+                data.append(app_commands.Choice(name=races, value=races))
+        return data
+
+    @nuevo.autocomplete("clase")
+    async def auto_race(
+        self, interaction: discord.Interaction, current: str
+    ) -> typing.List[app_commands.Choice[str]]:
+        data = []
+        for races in connector.get_classes({}, "class"):
+            if current.lower() in races.lower():
+                data.append(app_commands.Choice(name=races, value=races))
+        return data
+
+    # Declaracion de funiones de autocompletar dependientes.
+    @nuevo.autocomplete("subrace")
+    async def auto_subrace(
+        self, interaction: discord.Interaction, current: str
+    ) -> typing.List[app_commands.Choice[str]]:
+        data = []
+        subrace = connector.get_races(
+            {"race": interaction.namespace.raza}, format="subrace"
+        )
+        for races in subrace:
+            if current.lower() in races.lower():
+                data.append(app_commands.Choice(name=races, value=races))
+        return data
+
+    @nuevo.autocomplete("subclase")
+    async def auto_subrace(
+        self, interaction: discord.Interaction, current: str
+    ) -> typing.List[app_commands.Choice[str]]:
+        data = []
+        race = interaction.namespace.raza
+        subraces = {
+            "human": ["null"],
+            "elf": ["Wood", "High", "Drow", "Eladrin"],
+            "dwarf": ["Hill", "Mountain", "Fire"],
+            "tieflin": ["1", "2", "3", "4", "5", "6"],
+            "changelin": ["null"],
+        }
+        for races in subraces[race]:
+            if current.lower() in races.lower():
+                data.append(app_commands.Choice(name=races, value=races))
+        return data
+
+    # Comando para sacar informacion de un personaje
+    @app_commands.command(
+        name="info", description="Busca información sobre un personaje existente"
+    )
+    @app_commands.describe(name="Nombre del personaje")
+    @app_commands.rename(
+        name="nombre",
+    )
+    async def info(self, interaction: discord.Interaction, name: str):
+        result = custom_commands.template_personaje(
+            connector, interaction.channel.name, name
+        )
+        message = None
+        embed = None
+        if type(result) == str:
+            message = result
+        else:
+            embed = result
+
+        await interaction.response.send_message(message, embed=embed)
+
+    # Comando para subir de nivel un personaje.
+    @app_commands.command(name="nivel", description="Sube de nivel a un personaje")
+    @app_commands.describe(name="Nombre del persasonaje para subir de nivel")
+    async def nivel(
+        self,
+        interaction: discord.Interaction,
+        name: str,
+        class_name: Optional[str],
+        subclass_name: Optional[str],
+        life_method_roll: Optional[str],
+    ):
+        result = connector.level_up(
+            interaction.channel.name,
+            str(interaction.user.name),
+            name,
+            class_name,
+            subclass_name,
+            life_method_roll,
+        )  # subir nivel
+
+        message = None
+        embed = None
+        if result is None:
+            message = "None"
+        elif type(result) == str:
+            message = result
+        else:
+            embed = custom_commands.template_generic(True, result, interaction)
+
+        await interaction.response.send_message(message, embed=embed)
+
+    # Declaracion de las funciones de autocompletar nombre de pj dependiendo del jugador que interactue
+    @nuevo.autocomplete("name")
+    async def auto_name(
+        self, interaction: discord.Interaction, current: str
+    ) -> typing.List[app_commands.Choice[str]]:
+        data = []
+        for races in mongo_connector.mongo_connector.get_races({}, "race"):
+            if current.lower() in races.lower():
+                data.append(app_commands.Choice(name=races, value=races))
+        return data
+
+    # Commando para fijar url de pj
+    @app_commands.command(name="imagen", description="Fija la imagen del personaje")
+    @app_commands.describe(name="Nombre del personaje", url="Url de la imagen")
+    async def imagen(self, interaction: discord.Interaction, name: str, url: str):
+        result = connector.set_character_url(
+            character=name, player=str(interaction.user.name), url=url
+        )  # subir nivel
+
+        await interaction.response.send_message(result)
+
+
+# bot tree add commands!:
+bot.tree.clear_commands(guild=None)
+bot.tree.add_command(personaje())
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] == "-cli":
             print("starting as client")
-            client.run(TOKEN)
+            bot.run(TOKEN)
 
         elif sys.argv[1] == "-bot":
             print("starting as bot")
             bot.run(TOKEN)
     else:
-        print("starting as client: this is the current default behaviour")
-        client.run(TOKEN)
+        print("starting as bot: this is the current default behaviour")
+        bot.run(TOKEN)
