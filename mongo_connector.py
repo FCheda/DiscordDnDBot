@@ -82,6 +82,17 @@ class mongo_connector:
         else:
             return self.client[dbname][character_collection].find_one()
 
+    def get_characters(self, filter: dict = None, format: str = None):
+        cursor = self.client[dbname][character_collection].find(filter)
+        ret = cursor
+        if format == "lst":
+            ret = list(ret)
+        elif format == "name":
+            ret = list(set([item["Personaje"] for item in list(ret)]))
+        elif format == "level":
+            ret = [item["Level"] for item in list(ret)]
+        return ret
+
     def get_player(self, player_name: str = None):
         print("player is ", player_name)
         if player_name is not None:
@@ -205,7 +216,7 @@ class mongo_connector:
             9: 1,
             10: 2,
             11: 3,
-            12: 3,
+            12: 4,
             13: 5,
             14: 7,
             15: 9,
@@ -365,26 +376,43 @@ class mongo_connector:
             asi2val = 1
             asi3val = 0 if asi3 is None else 1
         else:
-            asi1val = 1 if asi2 is None else 2
-            asi2val = 0 if asi2 is None else 1
+            asi1val = 1
+            asi2val = 1
             asi3val = 0
 
+        if asi1 is None or str(asi1).lower() not in [
+            "str",
+            "dex",
+            "con",
+            "int",
+            "wis",
+            "cha",
+        ]:
+            return "ASI 1 erroneo"
+        if asi2 is None or str(asi2).lower() not in [
+            "str",
+            "dex",
+            "con",
+            "int",
+            "wis",
+            "cha",
+        ]:
+            return "ASI 2 erroneo"
+
         for asi in [(asi1, asi1val), (asi2, asi2val), (asi3, asi3val)]:
-            target = None
-            if asi[0] == "str":
-                target = _str
-            if asi[0] == "dex":
-                target = _dex
-            if asi[0] == "con":
-                target = _con
-            if asi[0] == "int":
-                target = _int
-            if asi[0] == "wis":
-                target = _wis
-            if asi[0] == "cha":
-                target = _cha
-            if target is not None:
-                target += asi[1]
+
+            if str(asi[0]).lower() == "str":
+                _str += asi[1]
+            if str(asi[0]).lower() == "dex":
+                _dex += asi[1]
+            if str(asi[0]).lower() == "con":
+                _con += asi[1]
+            if str(asi[0]).lower() == "int":
+                _int += asi[1]
+            if str(asi[0]).lower() == "wis":
+                _wis += asi[1]
+            if str(asi[0]).lower() == "cha":
+                _cha += asi[1]
 
         data = {
             "Type": "Character",
@@ -579,7 +607,7 @@ class mongo_connector:
         if reverse:
             multiplier = -1
         for key in rewards.keys():
-            rewards[key] = rewards[key] + multiplier * foo.get(key, 0)
+            rewards[key] = rewards[key] * multiplier + foo.get(key, 0)
         return rewards
 
     def store_log_in_db(self, player_rewards, gm, gm_rewards):
@@ -630,14 +658,20 @@ class mongo_connector:
         for index, line in enumerate(lines[3:]):
             if line[: len("Especial:")] == "Especial:":
                 tokens = [x.strip() for x in line[len("Especial:") :].split(",")]
-                special_players = tokens[:-5]
-                special_rewards = [token.split(" ")[0] for token in tokens[-5:]]
+                limit = 5
+                if "Evento" and "Chikievento" in line:
+                    limit = 7
+                elif "evento" or "Chikievento" in line:
+                    limit = 6
+                special_players = tokens[:-limit]
+                special_rewards = [token.split(" ")[0] for token in tokens[-limit:]]
                 for player in special_players:
                     if player not in log_dict:
                         message = f"{gm} cabrón, no me jodas el bot -> especial {player} NO esta en la lista de jugadores"
                         print(message)
                         return message
                     else:
+                        print(f"DEBUG player special rewards {special_rewards}")
                         log_dict[player] = self.get_player_log_rewards(special_rewards)
         print("initial log dict line 450")
         store_log_dict = copy.deepcopy(log_dict)  # to store a cold copy
@@ -665,7 +699,7 @@ class mongo_connector:
             return "invalid channel"
 
     def undo_log_by_id(self, channel, log_id):
-        if channel in ["bot-test", "oficina"]:
+        if channel in ["superadmin"]:
             log = self.get_log(log_id)
             gm_rewards = self.get_gm_update_dict(
                 log["gm"], log["gm_rewards"], reverse=True

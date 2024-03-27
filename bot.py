@@ -88,6 +88,7 @@ bot = commands.Bot(command_prefix="/", intents=intents)
 
 bot_channels = [
     "bot-test",
+    "superadmin",
     "sorpresas-navideñas",
     "recompensas",
     "bot_log_tests",
@@ -156,9 +157,10 @@ async def on_message(message):
     if message.content == "69!":
         response = random.choice(sex_quotes)
         await message.channel.send(response)
-    if (
-        str(message.channel) == "bot_log_tests"
-    ):  # and message.author.id != "D&D Bot#5178":
+    if str(message.channel) in [
+        "📒-logs",
+        "bot_log_tests",
+    ]:  # and message.author.id != "D&D Bot#5178":
         # response = random.choice(sex_quotes)
         # await message.channel.send(response)
         # print("GOT LOG !!! PROCESSING")
@@ -361,6 +363,8 @@ class personaje(app_commands.Group):
         asi2: str,
         asi3: Optional[str],
     ):
+        print(f"asi1,{asi1} asi2, {asi2}")
+
         result = connector.create_character(
             interaction.channel.name,
             str(interaction.user.name),
@@ -518,9 +522,38 @@ class personaje(app_commands.Group):
         await interaction.response.send_message(result)
 
 
+@app_commands.guild_only()
+class jugador(app_commands.Group):
+    # Comando para sacar informacion de un jugador
+    @app_commands.command(
+        name="info", description="Busca información sobre un jugador existente"
+    )
+    @app_commands.describe(name="Nombre del jugador")
+    @app_commands.rename(
+        name="nombre",
+    )
+    async def info(self, interaction: discord.Interaction, name: Optional[str] = None):
+
+        if name is None:
+            name = str(interaction.user.name)
+        print(f"name is {name}")
+        result = custom_commands.template_jugador(
+            connector, interaction.channel.name, name
+        )
+        message = None
+        embed = None
+        if type(result) == str:
+            message = result
+        else:
+            embed = result
+
+        await interaction.response.send_message(message, embed=embed)
+
+
 # bot tree add commands!:
 bot.tree.clear_commands(guild=None)
 bot.tree.add_command(personaje())
+bot.tree.add_command(jugador())
 
 
 if __name__ == "__main__":

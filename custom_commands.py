@@ -127,6 +127,44 @@ def template_personaje(connector, channel, name: str):
     return template_pj
 
 
+def template_jugador(connector, channel, name: str):
+    if channel not in ["bot-test", "consultas"]:
+        return "Invalid Channel"
+    info = connector.get_player(name)
+    if info is None:
+        # try with full name
+        pass
+    if info is None:
+        return f"No se ha encontrado ningun jugador con el nombre {name}"
+
+    template_jugador = discord.Embed(
+        title=info["Nombre"],
+        colour=0x800080,
+        timestamp=datetime.datetime.now(),
+    )
+
+    # TODO, get all characters from specific player
+    personajes = connector.get_characters(
+        format="name", filter={"Dueño": info["Nombre"]}
+    )
+
+    template_jugador.add_field(
+        name="Fecha de Creacion:", value=info["Fecha de creacion"], inline=False
+    )
+    template_jugador.add_field(name="Max Pjs:", value=info["Max Pjs"], inline=True)
+    template_jugador.add_field(name="Rango GM:", value=info["Rango GM"], inline=True)
+    template_jugador.add_field(
+        name="Partidas GM:", value=info["Partidas GM"], inline=True
+    )
+    template_jugador.add_field(name="Puntos GM:", value=info["Puntos GM"], inline=True)
+    template_jugador.add_field(name="Dias GM:", value=info["Dias GM"], inline=True)
+    template_jugador.add_field(name="Tomos GM:", value=info["Tomos"], inline=True)
+    template_jugador.add_field(
+        name="Personajes:", value=" ,".join(personajes), inline=True
+    )
+    return template_jugador
+
+
 def template_generic(error: bool, respuesta: str, interation: discord.Interaction):
     if error:
         template = discord.Embed(description=respuesta, colour=0xFF0080)
